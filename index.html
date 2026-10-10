@@ -615,6 +615,15 @@
                             <input type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" @change="handleImageUpload($event)">
                             <span class="text-[11px] font-medium text-slate-500">Puedes seleccionar varias a la vez</span>
                         </label>
+                        <div x-show="formData.uploadedImages.length" class="mt-3 grid grid-cols-4 gap-2">
+                            <template x-for="(image, index) in formData.uploadedImages" :key="index">
+                                <div class="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                    <img :src="image" alt="Imagen seleccionada" class="h-full w-full object-cover">
+                                    <button type="button" @click="formData.uploadedImages.splice(index, 1)" class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white" aria-label="Quitar imagen">×</button>
+                                </div>
+                            </template>
+                        </div>
+                        <p x-show="formData.uploadedImages.length" class="text-xs font-semibold text-brand-700" x-text="`${formData.uploadedImages.length} imagen(es) seleccionada(s)`"></p>
                         <p class="text-xs text-slate-500 mt-1">JPG, PNG o WebP · máximo 5 MB por imagen. Luego se conectará a Supabase Storage.</p>
                         <p class="text-xs text-slate-500 mt-1">Ingresa al menos una URL de imagen válida.</p>
                     </div>
@@ -869,6 +878,7 @@
                     status: 'Disponible',
                     description: '',
                     imagesInput: '',
+                    uploadedImages: [],
                     youtubeUrl: '',
                     featuresInput: ''
                 },
@@ -1093,6 +1103,7 @@
                         status: 'Disponible',
                         description: '',
                         imagesInput: '',
+                        uploadedImages: [],
                         youtubeUrl: '',
                         featuresInput: ''
                     };
@@ -1103,7 +1114,8 @@
                     this.isEditing = true;
                     this.formData = {
                         ...vehicle,
-                        imagesInput: Array.isArray(vehicle.images) ? vehicle.images.join('\n') : (vehicle.images || ''),
+                        imagesInput: Array.isArray(vehicle.images) ? vehicle.images.filter(image => !String(image).startsWith('data:image')).join('\n') : (vehicle.images || ''),
+                        uploadedImages: Array.isArray(vehicle.images) ? vehicle.images.filter(image => String(image).startsWith('data:image')) : [],
                         featuresInput: Array.isArray(vehicle.features) ? vehicle.features.join(', ') : (vehicle.features || '')
                     };
                     this.formModalOpen = true;
@@ -1129,8 +1141,7 @@
                         const compressed = await this.compressImage(file);
                         if (compressed) dataUrls.push(compressed);
                     }
-                    const current = this.parseImagesInput(this.formData.imagesInput);
-                    this.formData.imagesInput = [...current, ...dataUrls].join('\n');
+                    this.formData.uploadedImages = [...this.formData.uploadedImages, ...dataUrls];
                     event.target.value = '';
                 },
 
@@ -1154,7 +1165,7 @@
                 },
 
                 saveVehicle() {
-                    const imagesList = this.parseImagesInput(this.formData.imagesInput);
+                    const imagesList = [...this.parseImagesInput(this.formData.imagesInput), ...this.formData.uploadedImages];
 
                     const featuresList = this.formData.featuresInput
                         ? this.formData.featuresInput.split(',').map(s => s.trim()).filter(Boolean)
