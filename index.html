@@ -232,14 +232,28 @@
                         <div class="relative h-60 bg-slate-100 overflow-hidden">
                             <img :src="getMainImage(vehicle)" 
                                  :alt="vehicle.brand + ' ' + vehicle.model"
+                                 :class="vehicle.status === 'Vendido' ? 'brightness-50 saturate-50' : ''"
                                  class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+
+                            <!-- Sold overlay with JASG branding -->
+                            <template x-if="vehicle.status === 'Vendido'">
+                                <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-black/75 via-black/55 to-brand-900/75">
+                                    <div class="flex flex-col items-center gap-2 text-center text-white">
+                                        <div class="flex h-16 w-16 items-center justify-center rounded-full border-2 border-brand-400 bg-black/70 p-2 shadow-lg shadow-brand-500/30">
+                                            <img src="assets/jasg-logo.jpeg" alt="JASG" class="h-full w-full rounded-full object-cover">
+                                        </div>
+                                        <span class="border-y-2 border-brand-400 px-5 py-2 text-xl font-black tracking-[.2em] text-brand-100 drop-shadow-lg sm:text-2xl">VENDIDO</span>
+                                        <span class="text-[10px] font-bold uppercase tracking-[.25em] text-brand-200">JASG Automotriz</span>
+                                    </div>
+                                </div>
+                            </template>
                             
                             <!-- Status Badge -->
                             <div class="absolute top-3 left-3">
                                 <span :class="{
                                     'bg-emerald-600 text-white': vehicle.status === 'Disponible',
                                     'bg-amber-500 text-white': vehicle.status === 'Reservado',
-                                    'bg-rose-600 text-white': vehicle.status === 'Vendido'
+                                    'bg-slate-950 text-brand-200 border border-brand-400': vehicle.status === 'Vendido'
                                 }" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider shadow-md inline-block"
                                    x-text="vehicle.status">
                                 </span>
