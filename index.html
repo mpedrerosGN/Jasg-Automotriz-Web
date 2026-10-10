@@ -230,10 +230,20 @@
                         
                         <!-- Image Container -->
                         <div class="relative h-60 bg-slate-100 overflow-hidden">
-                            <img :src="getMainImage(vehicle)" 
+                            <img :src="getCardImage(vehicle)" 
                                  :alt="vehicle.brand + ' ' + vehicle.model"
                                  :class="vehicle.status === 'Vendido' ? 'brightness-50 saturate-50' : ''"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                 @touchstart="startCardSwipe(vehicle, $event)"
+                                 @touchend="endCardSwipe(vehicle, $event)">
+
+                            <template x-if="getVehicleImages(vehicle).length > 1">
+                                <div class="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/45 px-2 py-1">
+                                    <template x-for="(img, idx) in getVehicleImages(vehicle)" :key="idx">
+                                        <span class="h-1.5 w-1.5 rounded-full" :class="getCardIndex(vehicle) === idx ? 'bg-brand-400' : 'bg-white/70'"></span>
+                                    </template>
+                                </div>
+                            </template>
 
                             <!-- Sold overlay with JASG branding -->
                             <template x-if="vehicle.status === 'Vendido'">
@@ -881,6 +891,8 @@
                 isEditing: false,
                 selectedVehicle: null,
                 activeDetailImage: null,
+                cardImageIndexes: {},
+                cardSwipeStarts: {},
 
                 vehicles: [],
 
@@ -1093,6 +1105,33 @@
                     if (Array.isArray(vehicle.images) && vehicle.images.length > 0) return vehicle.images;
                     if (typeof vehicle.images === 'string' && vehicle.images) return [vehicle.images];
                     return ['https://placehold.co/800x600/f1f5f9/475569?text=Sin+Imagen'];
+                },
+
+                getCardIndex(vehicle) {
+                    const total = this.getVehicleImages(vehicle).length;
+                    return total ? (this.cardImageIndexes[vehicle.id] || 0) % total : 0;
+                },
+
+                getCardImage(vehicle) {
+                    return this.getVehicleImages(vehicle)[this.getCardIndex(vehicle)];
+                },
+
+                startCardSwipe(vehicle, event) {
+                    this.cardSwipeStarts[vehicle.id] = event.changedTouches[0].clientX;
+                },
+
+                endCardSwipe(vehicle, event) {
+                    const start = this.cardSwipeStarts[vehicle.id];
+                    if (start === undefined) return;
+                    const distance = event.changedTouches[0].clientX - start;
+                    const images = this.getVehicleImages(vehicle);
+                    if (images.length > 1 && Math.abs(distance) > 35) {
+                        const current = this.getCardIndex(vehicle);
+                        this.cardImageIndexes[vehicle.id] = distance < 0
+                            ? (current + 1) % images.length
+                            : (current - 1 + images.length) % images.length;
+                    }
+                    delete this.cardSwipeStarts[vehicle.id];
                 },
 
                 getFeaturesList(features) {
