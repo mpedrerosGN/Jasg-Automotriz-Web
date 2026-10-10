@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JASG Automotriz - Automotora Virtual</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            800: '#1e3a8a',
+                            900: '#172554',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Alpine.js CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        .aspect-video-custom { aspect-ratio: 16 / 9; }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-50 antialiased"
+      x-data="automotoraApp()"
+      x-init="initApp()">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                
+                <!-- Logo & Brand Name -->
+                <div class="flex items-center gap-3 cursor-pointer" @click="currentView = 'catalog'">
+                    <div class="w-12 h-12 bg-gradient-to-tr from-brand-600 to-blue-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                        <i class="fa-solid fa-car-side text-2xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-black tracking-tight text-slate-900">
+                            JASG <span class="text-brand-600">Automotriz</span>
+                        </span>
+                        <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider -mt-1">Automotora Virtual</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="hidden md:flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                    <button @click="currentView = 'catalog'"
+                            :class="currentView === 'catalog' ? 'bg-white text-brand-600 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                            class="px-5 py-2.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2">
+                        <i class="fa-solid fa-car"></i>
+                        <span>Catálogo Público</span>
+                    </button>
+
+                    <button @click="currentView = 'dashboard'"
+                            :class="currentView === 'dashboard' ? 'bg-white text-brand-600 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                            class="px-5 py-2.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>Panel de Gestión</span>
+                    </button>
+                </nav>
+
+                <!-- Header CTA Button -->
+                <div class="hidden md:flex items-center gap-3">
+                    <button @click="openCreateForm()" 
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-base"></i>
+                        <span>Publicar Vehículo</span>
+                    </button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button @click="mobileMenuOpen = !mobileMenuOpen" 
+                        class="md:hidden text-slate-600 hover:text-slate-900 p-2 rounded-xl bg-slate-100 border border-slate-200">
+                    <i class="fa-solid" :class="mobileMenuOpen ? 'fa-xmark text-xl' : 'fa-bars text-xl'"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div x-show="mobileMenuOpen" 
+             x-transition 
+             class="md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-4 space-y-2 shadow-lg">
+            <button @click="currentView = 'catalog'; mobileMenuOpen = false"
+                    :class="currentView === 'catalog' ? 'bg-brand-50 text-brand-600 font-bold' : 'text-slate-700'"
+                    class="w-full text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3">
+                <i class="fa-solid fa-car text-brand-600"></i> Catálogo Público
+            </button>
+            <button @click="currentView = 'dashboard'; mobileMenuOpen = false"
+                    :class="currentView === 'dashboard' ? 'bg-brand-50 text-brand-600 font-bold' : 'text-slate-700'"
+                    class="w-full text-left px-4 py-3 rounded-xl font-medium flex items-center gap-3">
+                <i class="fa-solid fa-sliders text-brand-600"></i> Panel de Gestión
+            </button>
+            <button @click="openCreateForm(); mobileMenuOpen = false"
+                    class="w-full text-center px-4 py-3 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-plus"></i> Publicar Vehículo
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- VIEW 1: CATALOGO PUBLICO -->
+        <div x-show="currentView === 'catalog'" x-transition>
+            
+            <!-- Hero Banner -->
+            <div class="relative rounded-3xl bg-gradient-to-r from-slate-900 via-brand-900 to-slate-900 text-white p-8 sm:p-12 mb-8 shadow-xl overflow-hidden">
+                <div class="absolute right-0 top-0 bottom-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.25),transparent_70%)] pointer-events-none"></div>
+                <div class="relative z-10 max-w-2xl">
+                    <span class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-brand-200 border border-white/10 uppercase tracking-wider mb-4">
+                        <i class="fa-solid fa-shield-halved"></i> Calidad e Inspección Garantizada
+                    </span>
+                    <h1 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight mb-4">
+                        Encuentra el auto ideal de forma clara y segura.
+                    </h1>
+                    <p class="text-slate-300 text-base sm:text-lg mb-6 leading-relaxed">
+                        Explora nuestra colección con galerías en alta definición, ficha técnica completa y reviews en video directamente desde YouTube.
+                    </p>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="#catalogo" class="bg-brand-600 hover:bg-brand-500 text-white font-bold px-6 py-3 rounded-xl transition shadow-lg shadow-brand-600/30 flex items-center gap-2">
+                            Ver Vehículos Disponibles <i class="fa-solid fa-arrow-down"></i>
+                        </a>
+                        <button @click="contactWhatsApp('Hola, quisiera asesoría para comprar un vehículo')" 
+                                class="bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 rounded-xl backdrop-blur-md border border-white/20 transition flex items-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-emerald-400 text-lg"></i> Asesoría por WhatsApp
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div id="catalogo" class="bg-white border border-slate-200 rounded-2xl p-6 mb-8 shadow-sm">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-filter text-brand-600"></i> Filtrar Catálogo
+                        </h2>
+                        <p class="text-xs text-slate-500 font-medium">Usa los controles para afinar la búsqueda</p>
+                    </div>
+                    <span class="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200" 
+                          x-text="`Mostrando ${filteredVehicles.length} de ${vehicles.length} vehículos`"></span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Search Input -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Búsqueda directa</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text"
+                                   x-model="catalogFilters.search"
+                                   placeholder="Marca, modelo..."
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 transition">
+                        </div>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tipo de Vehículo</label>
+                        <select x-model="catalogFilters.category"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 transition">
+                            <option value="">Todos los Tipos</option>
+                            <template x-for="cat in categories" :key="cat">
+                                <option :value="cat" x-text="cat"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Estado</label>
+                        <select x-model="catalogFilters.status"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 transition">
+                            <option value="">Todos los Estados</option>
+                            <option value="Disponible">Disponible</option>
+                            <option value="Reservado">Reservado</option>
+                            <option value="Vendido">Vendido</option>
+                        </select>
+                    </div>
+
+                    <!-- Price Filter -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Precio Máximo</label>
+                        <select x-model="catalogFilters.maxPrice"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 transition">
+                            <option value="">Cualquier Precio</option>
+                            <option value="15000000">Hasta $15.000.000 CLP</option>
+                            <option value="25000000">Hasta $25.000.000 CLP</option>
+                            <option value="35000000">Hasta $35.000.000 CLP</option>
+                            <option value="50000000">Hasta $50.000.000 CLP</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Reset Filters Button -->
+                <div class="mt-4 flex justify-end" x-show="hasActiveFilters">
+                    <button @click="resetCatalogFilters()" class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1.5 bg-brand-50 px-3 py-1.5 rounded-lg transition">
+                        <i class="fa-solid fa-rotate-left"></i> Restablecer Filtros
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vehicles Cards Grid -->
+            <div x-show="filteredVehicles.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <template x-for="vehicle in filteredVehicles" :key="vehicle.id">
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-300 flex flex-col group">
+                        
+                        <!-- Image Container -->
+                        <div class="relative h-60 bg-slate-100 overflow-hidden">
+                            <img :src="getMainImage(vehicle)" 
+                                 :alt="vehicle.brand + ' ' + vehicle.model"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            
+                            <!-- Status Badge -->
+                            <div class="absolute top-3 left-3">
+                                <span :class="{
+                                    'bg-emerald-600 text-white': vehicle.status === 'Disponible',
+                                    'bg-amber-500 text-white': vehicle.status === 'Reservado',
+                                    'bg-rose-600 text-white': vehicle.status === 'Vendido'
+                                }" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider shadow-md inline-block"
+                                   x-text="vehicle.status">
+                                </span>
+                            </div>
+
+                            <!-- YouTube Video Badge -->
+                            <template x-if="vehicle.youtubeUrl">
+                                <div class="absolute top-3 right-3 bg-red-600 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md">
+                                    <i class="fa-brands fa-youtube text-sm"></i> Video
+                                </div>
+                            </template>
+
+                            <!-- Price Tag -->
+                            <div class="absolute bottom-3 right-3 bg-slate-900/90 backdrop-blur-md text-white px-4 py-1.5 rounded-xl font-black text-lg shadow-lg border border-white/10">
+                                <span class="text-brand-300" x-text="formatCurrency(vehicle.price)"></span>
+                            </div>
+                        </div>
+
+                        <!-- Card Details Body -->
+                        <div class="p-6 flex-grow flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between text-xs font-bold text-brand-600 uppercase tracking-wider mb-1">
+                                    <span x-text="vehicle.category"></span>
+                                    <span class="text-slate-500 font-semibold" x-text="vehicle.year"></span>
+                                </div>
+                                
+                                <h3 class="text-xl font-black text-slate-900 mb-3 group-hover:text-brand-600 transition" x-text="`${vehicle.brand} ${vehicle.model}`"></h3>
+                                
+                                <p class="text-slate-600 text-xs line-clamp-2 mb-4 leading-relaxed" x-text="vehicle.description"></p>
+
+                                <!-- Specs Grid -->
+                                <div class="grid grid-cols-3 gap-2 py-3 border-y border-slate-100 text-slate-700 text-xs font-medium mb-6">
+                                    <div class="flex items-center gap-1.5" title="Kilometraje">
+                                        <i class="fa-solid fa-gauge text-brand-600"></i>
+                                        <span x-text="`${formatNumber(vehicle.mileage)} km`"></span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5" title="Transmisión">
+                                        <i class="fa-solid fa-gears text-brand-600"></i>
+                                        <span x-text="vehicle.transmission"></span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5" title="Combustible">
+                                        <i class="fa-solid fa-gas-pump text-brand-600"></i>
+                                        <span x-text="vehicle.fuel"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="grid grid-cols-2 gap-3 mt-auto">
+                                <button @click="openDetailModal(vehicle)" 
+                                        class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-eye text-brand-600"></i> Detalle
+                                </button>
+                                <button @click="contactWhatsApp(`Hola JASG Automotriz, estoy interesado en el vehículo ${vehicle.brand} ${vehicle.model} ${vehicle.year} con precio ${formatCurrency(vehicle.price)}`)" 
+                                        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20">
+                                    <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </template>
+            </div>
+
+            <!-- Empty Filter State -->
+            <div x-show="filteredVehicles.length === 0" class="text-center py-16 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400 text-2xl">
+                    <i class="fa-solid fa-car-tunnel"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-1">No hay vehículos que coincidan</h3>
+                <p class="text-slate-500 text-sm max-w-md mx-auto mb-6">Ajusta los filtros de búsqueda para explorar todo nuestro inventario.</p>
+                <button @click="resetCatalogFilters()" class="bg-brand-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md">
+                    Ver todos los vehículos
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 2: PANEL DE GESTION (ADMIN) -->
+        <div x-show="currentView === 'dashboard'" x-transition x-cloak>
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-black text-slate-900">Panel de Administración de Inventario</h1>
+                    <p class="text-slate-500 text-sm font-medium">Gestiona publicaciones, cambia estados de venta y añade unidades</p>
+                </div>
+                <button @click="openCreateForm()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition shadow-md shadow-emerald-600/20 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus"></i> Publicar Nuevo Vehículo
+                </button>
+            </div>
+
+            <!-- KPI Counters Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl font-bold border border-brand-100">
+                        <i class="fa-solid fa-car"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Inventario</p>
+                        <h4 class="text-2xl font-black text-slate-900" x-text="vehicles.length"></h4>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold border border-emerald-100">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Disponibles</p>
+                        <h4 class="text-2xl font-black text-slate-900" x-text="vehicles.filter(v => v.status === 'Disponible').length"></h4>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold border border-amber-100">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Reservados</p>
+                        <h4 class="text-2xl font-black text-slate-900" x-text="vehicles.filter(v => v.status === 'Reservado').length"></h4>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
+                    <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold border border-rose-100">
+                        <i class="fa-solid fa-handshake"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Vendidos</p>
+                        <h4 class="text-2xl font-black text-slate-900" x-text="vehicles.filter(v => v.status === 'Vendido').length"></h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Table Container -->
+            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                
+                <!-- Table Controls Header -->
+                <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50/50">
+                    <div class="relative w-full md:w-80">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text"
+                               x-model="dashboardSearch"
+                               placeholder="Filtrar por marca o modelo..."
+                               class="w-full bg-white border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm font-medium focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20">
+                    </div>
+
+                    <div class="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                        <span class="text-xs font-bold text-slate-500 whitespace-nowrap uppercase tracking-wider mr-2">Estado:</span>
+                        <template x-for="st in ['Todos', 'Disponible', 'Reservado', 'Vendido']" :key="st">
+                            <button @click="dashboardStatusFilter = st"
+                                    :class="dashboardStatusFilter === st ? 'bg-brand-600 text-white font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold'"
+                                    class="px-3.5 py-1.5 rounded-lg text-xs transition whitespace-nowrap"
+                                    x-text="st">
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100/70 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
+                                <th class="py-4 px-6">Vehículo</th>
+                                <th class="py-4 px-6">Tipo / Año</th>
+                                <th class="py-4 px-6">Precio</th>
+                                <th class="py-4 px-6">Km / Transmisión</th>
+                                <th class="py-4 px-6">YouTube</th>
+                                <th class="py-4 px-6">Estado</th>
+                                <th class="py-4 px-6 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                            <template x-for="v in dashboardFilteredVehicles" :key="v.id">
+                                <tr class="hover:bg-slate-50/80 transition">
+                                    <!-- Vehicle Thumbnail & Name -->
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center gap-3">
+                                            <img :src="getMainImage(v)" 
+                                                 class="w-12 h-12 rounded-xl object-cover bg-slate-100 border border-slate-200">
+                                            <div>
+                                                <div class="font-bold text-slate-900" x-text="`${v.brand} ${v.model}`"></div>
+                                                <div class="text-xs text-slate-400 font-mono" x-text="`ID: #${v.id.toString().slice(-4)}`"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Category & Year -->
+                                    <td class="py-4 px-6">
+                                        <div class="font-semibold text-slate-800" x-text="v.category"></div>
+                                        <div class="text-xs text-slate-500" x-text="v.year"></div>
+                                    </td>
+
+                                    <!-- Price -->
+                                    <td class="py-4 px-6 font-black text-brand-600" x-text="formatCurrency(v.price)"></td>
+
+                                    <!-- Mileage / Transmission -->
+                                    <td class="py-4 px-6">
+                                        <div x-text="`${formatNumber(v.mileage)} km`"></div>
+                                        <div class="text-xs text-slate-500" x-text="v.transmission"></div>
+                                    </td>
+
+                                    <!-- Video Status -->
+                                    <td class="py-4 px-6">
+                                        <template x-if="v.youtubeUrl">
+                                            <span class="inline-flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">
+                                                <i class="fa-brands fa-youtube"></i> Incluido
+                                            </span>
+                                        </template>
+                                        <template x-if="!v.youtubeUrl">
+                                            <span class="text-slate-400 text-xs">—</span>
+                                        </template>
+                                    </td>
+
+                                    <!-- Status Selector -->
+                                    <td class="py-4 px-6">
+                                        <select :value="v.status" 
+                                                @change="updateVehicleStatus(v.id, $event.target.value)"
+                                                :class="{
+                                                    'bg-emerald-50 text-emerald-700 border-emerald-200': v.status === 'Disponible',
+                                                    'bg-amber-50 text-amber-700 border-amber-200': v.status === 'Reservado',
+                                                    'bg-rose-50 text-rose-700 border-rose-200': v.status === 'Vendido'
+                                                }"
+                                                class="px-2.5 py-1 text-xs font-extrabold rounded-lg border focus:outline-none cursor-pointer">
+                                            <option value="Disponible">Disponible</option>
+                                            <option value="Reservado">Reservado</option>
+                                            <option value="Vendido">Vendido</option>
+                                        </select>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="py-4 px-6 text-right space-x-1 whitespace-nowrap">
+                                        <button @click="openDetailModal(v)" title="Ver Detalle" class="p-2 text-slate-500 hover:text-brand-600 rounded-lg hover:bg-slate-100">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                        <button @click="openEditForm(v)" title="Editar" class="p-2 text-slate-500 hover:text-brand-600 rounded-lg hover:bg-slate-100">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button @click="confirmDeleteVehicle(v)" title="Eliminar" class="p-2 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-50">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <template x-if="dashboardFilteredVehicles.length === 0">
+                                <tr>
+                                    <td colspan="7" class="text-center py-12 text-slate-400 font-medium">
+                                        No se encontraron registros en la tabla.
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- MODAL: FORMULARIO PUBLICACION / EDICION -->
+    <div x-show="formModalOpen" 
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+         x-transition
+         x-cloak>
+        
+        <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 relative border border-slate-200 my-8"
+             @click.away="formModalOpen = false">
+            
+            <!-- Close Button -->
+            <button @click="formModalOpen = false" class="absolute top-6 right-6 text-slate-400 hover:text-slate-700 p-2 rounded-xl bg-slate-100">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <!-- Header -->
+            <div class="mb-6 pb-4 border-b border-slate-100">
+                <span class="text-xs font-bold text-brand-600 uppercase tracking-wider" x-text="isEditing ? 'Edición de Ficha' : 'Nueva Publicación'"></span>
+                <h2 class="text-2xl font-black text-slate-900" x-text="isEditing ? 'Editar Vehículo' : 'Publicar Nuevo Vehículo'"></h2>
+            </div>
+
+            <!-- Form -->
+            <form @submit.prevent="saveVehicle()" class="space-y-6">
+                
+                <!-- Section 1: General Info -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-brand-600"></i> Información Principal
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Marca *</label>
+                            <input type="text" x-model="formData.brand" required placeholder="Ej: Toyota"
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Modelo *</label>
+                            <input type="text" x-model="formData.model" required placeholder="Ej: RAV4"
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Año *</label>
+                            <input type="number" x-model.number="formData.year" required min="1950" max="2028" placeholder="2023"
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Precio ($ CLP) *</label>
+                            <input type="number" x-model.number="formData.price" required min="0" placeholder="18500000"
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Kilometraje (Km) *</label>
+                            <input type="number" x-model.number="formData.mileage" required min="0" placeholder="25000"
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tipo / Categoría *</label>
+                            <select x-model="formData.category" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                                <template x-for="c in categories" :key="c">
+                                    <option :value="c" x-text="c"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Transmisión *</label>
+                            <select x-model="formData.transmission" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                                <option value="Automática">Automática</option>
+                                <option value="Manual">Manual</option>
+                                <option value="Secuencial">Secuencial</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Combustible *</label>
+                            <select x-model="formData.fuel" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                                <option value="Bencina">Bencina</option>
+                                <option value="Diésel">Diésel</option>
+                                <option value="Híbrido">Híbrido</option>
+                                <option value="Eléctrico">Eléctrico</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Estado inicial *</label>
+                            <select x-model="formData.status" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                                <option value="Disponible">Disponible</option>
+                                <option value="Reservado">Reservado</option>
+                                <option value="Vendido">Vendido</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Images & YouTube Video Integration -->
+                <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-images text-brand-600"></i> Galería de Fotos y Video
+                    </h3>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">URLs de Imágenes (Separadas por comas o saltos de línea)</label>
+                        <textarea x-model="formData.imagesInput" rows="2" required placeholder="https://images.unsplash.com/photo-1..., https://images.unsplash.com/photo-2..."
+                                  class="w-full bg-white border border-slate-200 text-slate-800 rounded-xl p-3 text-sm font-medium focus:outline-none focus:border-brand-600"></textarea>
+                        <p class="text-xs text-slate-500 mt-1">Ingresa al menos una URL de imagen válida.</p>
+                    </div>
+
+                    <!-- YouTube Video Integration -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            URL o Enlace de Video de YouTube
+                        </label>
+                        <div class="relative">
+                            <i class="fa-brands fa-youtube absolute left-3.5 top-1/2 -translate-y-1/2 text-red-600 text-lg"></i>
+                            <input type="text" 
+                                   x-model="formData.youtubeUrl" 
+                                   placeholder="Ej: https://www.youtube.com/watch?v=0k3C5V4N8I8 o ID del video"
+                                   class="w-full bg-white border border-slate-200 text-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:border-brand-600">
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">Soporta videos normales, enlaces cortos (youtu.be) y YouTube Shorts.</p>
+                    </div>
+
+                    <!-- Instant YouTube Embed Preview in Form -->
+                    <template x-if="getYouTubeEmbedUrl(formData.youtubeUrl)">
+                        <div class="mt-3 bg-white p-3 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-700 block mb-2">Vista previa del video:</span>
+                            <div class="rounded-xl overflow-hidden bg-black aspect-video-custom max-w-md shadow-sm">
+                                <iframe :src="getYouTubeEmbedUrl(formData.youtubeUrl)" 
+                                        class="w-full h-full" 
+                                        frameborder="0" 
+                                        allowfullscreen>
+                                </iframe>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Section 3: Description & Features -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Descripción General *</label>
+                        <textarea x-model="formData.description" rows="3" required placeholder="Describe las condiciones generales, dueño, mantenciones, estado..."
+                                  class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-3 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Equipamiento (Separado por comas)</label>
+                        <input type="text" x-model="formData.featuresInput" placeholder="Ej: Climatizador dual, Asientos de cuero, Sunroof, Apple CarPlay"
+                               class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button type="button" @click="formModalOpen = false" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-100 transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-md shadow-brand-600/30 transition">
+                        <span x-text="isEditing ? 'Guardar Cambios' : 'Publicar Vehículo'"></span>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- MODAL: DETALLE DEL VEHICULO -->
+    <div x-show="detailModalOpen" 
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+         x-transition
+         x-cloak>
+
+        <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl relative border border-slate-200 my-8"
+             @click.away="detailModalOpen = false">
+            
+            <template x-if="selectedVehicle">
+                <div>
+                    <!-- Sticky Header Bar -->
+                    <div class="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-brand-600 font-bold uppercase tracking-wider" x-text="selectedVehicle.category"></span>
+                            <h2 class="text-xl sm:text-2xl font-black text-slate-900" x-text="`${selectedVehicle.brand} ${selectedVehicle.model} (${selectedVehicle.year})`"></h2>
+                        </div>
+                        <button @click="detailModalOpen = false" class="text-slate-400 hover:text-slate-700 p-2 rounded-xl bg-slate-100">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-6 sm:p-8 space-y-8">
+                        
+                        <!-- Image Gallery Component -->
+                        <div class="space-y-3">
+                            <div class="relative rounded-2xl overflow-hidden bg-slate-100 h-80 sm:h-96 border border-slate-200 shadow-sm">
+                                <img :src="activeDetailImage || getMainImage(selectedVehicle)" 
+                                     :alt="selectedVehicle.model" 
+                                     class="w-full h-full object-cover">
+                                
+                                <div class="absolute top-4 left-4">
+                                    <span :class="{
+                                        'bg-emerald-600': selectedVehicle.status === 'Disponible',
+                                        'bg-amber-500': selectedVehicle.status === 'Reservado',
+                                        'bg-rose-600': selectedVehicle.status === 'Vendido'
+                                    }" class="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider text-white shadow-md"
+                                       x-text="selectedVehicle.status">
+                                    </span>
+                                </div>
+
+                                <div class="absolute bottom-4 right-4 bg-slate-900/90 text-white px-5 py-2 rounded-xl font-black text-2xl shadow-lg border border-white/10">
+                                    <span class="text-brand-300" x-text="formatCurrency(selectedVehicle.price)"></span>
+                                </div>
+                            </div>
+
+                            <!-- Thumbnails selector -->
+                            <template x-if="getVehicleImages(selectedVehicle).length > 1">
+                                <div class="flex items-center gap-3 overflow-x-auto pb-2">
+                                    <template x-for="(img, idx) in getVehicleImages(selectedVehicle)" :key="idx">
+                                        <button @click="activeDetailImage = img" 
+                                                :class="activeDetailImage === img ? 'ring-2 ring-brand-600 border-transparent' : 'border-slate-200 opacity-70 hover:opacity-100'"
+                                                class="w-20 h-16 rounded-xl overflow-hidden border bg-slate-100 flex-shrink-0 transition">
+                                            <img :src="img" class="w-full h-full object-cover">
+                                        </button>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Technical Specs Grid -->
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Ficha Técnica Destacada</h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
+                                    <i class="fa-solid fa-calendar-days text-brand-600 text-xl mb-1 block"></i>
+                                    <span class="text-xs font-semibold text-slate-500 block">Año</span>
+                                    <span class="font-black text-slate-900 text-sm" x-text="selectedVehicle.year"></span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
+                                    <i class="fa-solid fa-gauge text-brand-600 text-xl mb-1 block"></i>
+                                    <span class="text-xs font-semibold text-slate-500 block">Kilometraje</span>
+                                    <span class="font-black text-slate-900 text-sm" x-text="`${formatNumber(selectedVehicle.mileage)} km`"></span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
+                                    <i class="fa-solid fa-gears text-brand-600 text-xl mb-1 block"></i>
+                                    <span class="text-xs font-semibold text-slate-500 block">Transmisión</span>
+                                    <span class="font-black text-slate-900 text-sm" x-text="selectedVehicle.transmission"></span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center">
+                                    <i class="fa-solid fa-gas-pump text-brand-600 text-xl mb-1 block"></i>
+                                    <span class="text-xs font-semibold text-slate-500 block">Combustible</span>
+                                    <span class="font-black text-slate-900 text-sm" x-text="selectedVehicle.fuel"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- YouTube Video Player Section -->
+                        <template x-if="getYouTubeEmbedUrl(selectedVehicle.youtubeUrl)">
+                            <div class="bg-slate-900 text-white border border-slate-800 rounded-2xl p-6 shadow-md">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <i class="fa-brands fa-youtube text-red-500 text-2xl"></i>
+                                    <h3 class="text-base font-bold text-white">Video Walkaround & Review</h3>
+                                </div>
+                                <div class="rounded-xl overflow-hidden bg-black aspect-video-custom w-full shadow-lg border border-slate-800">
+                                    <iframe :src="getYouTubeEmbedUrl(selectedVehicle.youtubeUrl)" 
+                                            class="w-full h-full" 
+                                            frameborder="0" 
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Description & Features -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="md:col-span-2 space-y-2">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Descripción del vehículo</h3>
+                                <p class="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium" x-text="selectedVehicle.description"></p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Equipamiento</h3>
+                                <div class="flex flex-wrap gap-2">
+                                    <template x-for="feat in getFeaturesList(selectedVehicle.features)" :key="feat">
+                                        <span class="bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                                            <i class="fa-solid fa-circle-check text-brand-600 text-xs"></i> <span x-text="feat"></span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- WhatsApp Action Footer -->
+                        <div class="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="text-xs text-slate-500 font-medium">
+                                ¿Interesado en este modelo? Contacta directamente a nuestro vendedor asignado.
+                            </div>
+                            <button @click="contactWhatsApp(`Hola JASG Automotriz, me gustaría solicitar más información y agendar prueba del ${selectedVehicle.brand} ${selectedVehicle.model} (${selectedVehicle.year}) - ${formatCurrency(selectedVehicle.price)}`)" 
+                                    class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/30">
+                                <i class="fa-brands fa-whatsapp text-xl"></i> Cotizar vía WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-car-side text-brand-600"></i>
+                <span class="font-bold text-slate-800">JASG Automotriz</span> — Plataforma de Gestión de Vehículos
+            </div>
+            <p>&copy; 2026 JASG Automotriz. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        function automotoraApp() {
+            return {
+                currentView: 'catalog',
+                mobileMenuOpen: false,
+                formModalOpen: false,
+                detailModalOpen: false,
+                isEditing: false,
+                selectedVehicle: null,
+                activeDetailImage: null,
+
+                vehicles: [],
+
+                // Catalog Filters
+                catalogFilters: {
+                    search: '',
+                    category: '',
+                    status: '',
+                    maxPrice: ''
+                },
+
+                // Dashboard Search
+                dashboardSearch: '',
+                dashboardStatusFilter: 'Todos',
+
+                // Form Data State
+                formData: {
+                    id: null,
+                    brand: '',
+                    model: '',
+                    year: new Date().getFullYear(),
+                    price: '',
+                    mileage: '',
+                    category: 'SUV',
+                    transmission: 'Automática',
+                    fuel: 'Bencina',
+                    status: 'Disponible',
+                    description: '',
+                    imagesInput: '',
+                    youtubeUrl: '',
+                    featuresInput: ''
+                },
+
+                categories: ['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Deportivo', 'Comercial'],
+
+                // Initialize App Data
+                initApp() {
+                    const saved = localStorage.getItem('jasg_automotora_clean_data');
+                    if (saved) {
+                        try {
+                            this.vehicles = JSON.parse(saved);
+                        } catch(e) {
+                            this.loadSeedData();
+                        }
+                    } else {
+                        this.loadSeedData();
+                    }
+                },
+
+                loadSeedData() {
+                    this.vehicles = [
+                        {
+                            id: 1001,
+                            brand: 'Toyota',
+                            model: 'RAV4 Hybrid Limited AWD',
+                            year: 2023,
+                            price: 27900000,
+                            mileage: 18500,
+                            category: 'SUV',
+                            transmission: 'Automática',
+                            fuel: 'Híbrido',
+                            status: 'Disponible',
+                            description: 'Único dueño, consumo extraordinario rindiendo hasta 21 km/L en ciudad. Mantenciones al día en concesionario oficial.',
+                            images: [
+                                'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1200&q=80',
+                                'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=1200&q=80'
+                            ],
+                            youtubeUrl: 'https://www.youtube.com/watch?v=0k3C5V4N8I8',
+                            features: ['Toyota Safety Sense', 'Apple CarPlay Inalámbrico', 'Sunroof Eléctrico', 'Cámara 360']
+                        },
+                        {
+                            id: 1002,
+                            brand: 'Ford',
+                            model: 'Ranger Raptor 3.0 V6',
+                            year: 2022,
+                            price: 46500000,
+                            mileage: 31000,
+                            category: 'Camioneta',
+                            transmission: 'Automática',
+                            fuel: 'Bencina',
+                            status: 'Disponible',
+                            description: 'Suspensiones FOX Racing con Live Valve, modo Baja, audio Bang & Olufsen de 10 parlantes.',
+                            images: [
+                                'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80'
+                            ],
+                            youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                            features: ['Amortiguadores FOX', 'Pantalla 12 pulgadas', 'Tracción 4WD Avanzada']
+                        },
+                        {
+                            id: 1003,
+                            brand: 'BMW',
+                            model: 'M3 Competition xDrive',
+                            year: 2022,
+                            price: 69900000,
+                            mileage: 14000,
+                            category: 'Deportivo',
+                            transmission: 'Automática',
+                            fuel: 'Bencina',
+                            status: 'Reservado',
+                            description: '510 HP, tracción integral M xDrive configurable. Asientos de carbono, frenos deportivos M.',
+                            images: [
+                                'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=1200&q=80'
+                            ],
+                            youtubeUrl: '',
+                            features: ['Llantas Forjadas M', 'Escape Deportivo', 'Head-Up Display']
+                        },
+                        {
+                            id: 1004,
+                            brand: 'Chevrolet',
+                            model: 'Onix Turbo Premier',
+                            year: 2021,
+                            price: 11200000,
+                            mileage: 45000,
+                            category: 'Hatchback',
+                            transmission: 'Manual',
+                            fuel: 'Bencina',
+                            status: 'Disponible',
+                            description: 'Excelente consumo, motor 1.0 Turbo muy ágil. Equipamiento con cargador inalámbrico y Wi-Fi a bordo.',
+                            images: [
+                                'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=1200&q=80'
+                            ],
+                            youtubeUrl: '',
+                            features: ['OnStar 24/7', 'Sensor de Punto Ciego', 'Aire Acondicionado Digital']
+                        }
+                    ];
+                    this.saveToStorage();
+                },
+
+                saveToStorage() {
+                    localStorage.setItem('jasg_automotora_clean_data', JSON.stringify(this.vehicles));
+                },
+
+                // Filters logic
+                get hasActiveFilters() {
+                    return this.catalogFilters.search !== '' ||
+                           this.catalogFilters.category !== '' ||
+                           this.catalogFilters.status !== '' ||
+                           this.catalogFilters.maxPrice !== '';
+                },
+
+                get filteredVehicles() {
+                    return this.vehicles.filter(v => {
+                        const searchMatch = this.catalogFilters.search === '' ||
+                            `${v.brand} ${v.model} ${v.description}`.toLowerCase().includes(this.catalogFilters.search.toLowerCase());
+
+                        const catMatch = this.catalogFilters.category === '' || v.category === this.catalogFilters.category;
+                        const statusMatch = this.catalogFilters.status === '' || v.status === this.catalogFilters.status;
+                        const priceMatch = this.catalogFilters.maxPrice === '' || v.price <= Number(this.catalogFilters.maxPrice);
+
+                        return searchMatch && catMatch && statusMatch && priceMatch;
+                    });
+                },
+
+                get dashboardFilteredVehicles() {
+                    return this.vehicles.filter(v => {
+                        const searchMatch = this.dashboardSearch === '' ||
+                            `${v.brand} ${v.model}`.toLowerCase().includes(this.dashboardSearch.toLowerCase());
+
+                        const statusMatch = this.dashboardStatusFilter === 'Todos' || v.status === this.dashboardStatusFilter;
+
+                        return searchMatch && statusMatch;
+                    });
+                },
+
+                resetCatalogFilters() {
+                    this.catalogFilters = {
+                        search: '',
+                        category: '',
+                        status: '',
+                        maxPrice: ''
+                    };
+                },
+
+                // Helper for extracting YouTube Embed Link
+                getYouTubeEmbedUrl(url) {
+                    if (!url) return null;
+                    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+                    const match = url.match(regExp);
+
+                    if (match && match[2].length === 11) {
+                        return `https://www.youtube.com/embed/${match[2]}?rel=0`;
+                    }
+                    if (url.length === 11 && !url.includes('/') && !url.includes('.')) {
+                        return `https://www.youtube.com/embed/${url}?rel=0`;
+                    }
+                    return null;
+                },
+
+                // Image helpers
+                getMainImage(vehicle) {
+                    if (Array.isArray(vehicle.images) && vehicle.images.length > 0) return vehicle.images[0];
+                    if (typeof vehicle.images === 'string' && vehicle.images) return vehicle.images;
+                    return 'https://placehold.co/800x600/f1f5f9/475569?text=Sin+Imagen';
+                },
+
+                getVehicleImages(vehicle) {
+                    if (Array.isArray(vehicle.images) && vehicle.images.length > 0) return vehicle.images;
+                    if (typeof vehicle.images === 'string' && vehicle.images) return [vehicle.images];
+                    return ['https://placehold.co/800x600/f1f5f9/475569?text=Sin+Imagen'];
+                },
+
+                getFeaturesList(features) {
+                    if (Array.isArray(features)) return features;
+                    if (typeof features === 'string') return features.split(',').map(s => s.trim()).filter(Boolean);
+                    return [];
+                },
+
+                // Formatters
+                formatCurrency(val) {
+                    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(val || 0);
+                },
+
+                formatNumber(val) {
+                    return new Intl.NumberFormat('es-CL').format(val || 0);
+                },
+
+                // Modal Form Handlers
+                openCreateForm() {
+                    this.isEditing = false;
+                    this.formData = {
+                        id: Date.now(),
+                        brand: '',
+                        model: '',
+                        year: new Date().getFullYear(),
+                        price: '',
+                        mileage: '',
+                        category: 'SUV',
+                        transmission: 'Automática',
+                        fuel: 'Bencina',
+                        status: 'Disponible',
+                        description: '',
+                        imagesInput: '',
+                        youtubeUrl: '',
+                        featuresInput: ''
+                    };
+                    this.formModalOpen = true;
+                },
+
+                openEditForm(vehicle) {
+                    this.isEditing = true;
+                    this.formData = {
+                        ...vehicle,
+                        imagesInput: Array.isArray(vehicle.images) ? vehicle.images.join(', ') : (vehicle.images || ''),
+                        featuresInput: Array.isArray(vehicle.features) ? vehicle.features.join(', ') : (vehicle.features || '')
+                    };
+                    this.formModalOpen = true;
+                },
+
+                saveVehicle() {
+                    const imagesList = this.formData.imagesInput
+                        ? this.formData.imagesInput.split(',').map(s => s.trim()).filter(Boolean)
+                        : [];
+
+                    const featuresList = this.formData.featuresInput
+                        ? this.formData.featuresInput.split(',').map(s => s.trim()).filter(Boolean)
+                        : [];
+
+                    const newObj = {
+                        id: this.formData.id || Date.now(),
+                        brand: this.formData.brand,
+                        model: this.formData.model,
+                        year: Number(this.formData.year),
+                        price: Number(this.formData.price),
+                        mileage: Number(this.formData.mileage),
+                        category: this.formData.category,
+                        transmission: this.formData.transmission,
+                        fuel: this.formData.fuel,
+                        status: this.formData.status,
+                        description: this.formData.description,
+                        images: imagesList.length > 0 ? imagesList : ['https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1200&q=80'],
+                        youtubeUrl: this.formData.youtubeUrl,
+                        features: featuresList
+                    };
+
+                    if (this.isEditing) {
+                        const index = this.vehicles.findIndex(v => v.id === newObj.id);
+                        if (index !== -1) this.vehicles[index] = newObj;
+                    } else {
+                        this.vehicles.unshift(newObj);
+                    }
+
+                    this.saveToStorage();
+                    this.formModalOpen = false;
+                },
+
+                updateVehicleStatus(id, status) {
+                    const v = this.vehicles.find(item => item.id === id);
+                    if (v) {
+                        v.status = status;
+                        this.saveToStorage();
+                    }
+                },
+
+                confirmDeleteVehicle(vehicle) {
+                    if (confirm(`¿Estás seguro de que deseas eliminar el vehículo ${vehicle.brand} ${vehicle.model}?`)) {
+                        this.vehicles = this.vehicles.filter(v => v.id !== vehicle.id);
+                        this.saveToStorage();
+                    }
+                },
+
+                openDetailModal(vehicle) {
+                    this.selectedVehicle = vehicle;
+                    this.activeDetailImage = this.getMainImage(vehicle);
+                    this.detailModalOpen = true;
+                },
+
+                contactWhatsApp(text) {
+                    const phone = "56912345678";
+                    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+                }
+            };
+        }
+    </script>
+</body>
+</html>
