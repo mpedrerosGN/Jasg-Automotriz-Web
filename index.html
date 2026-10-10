@@ -730,7 +730,18 @@
                             <div class="relative rounded-2xl overflow-hidden bg-slate-100 h-80 sm:h-96 border border-slate-200 shadow-sm">
                                 <img :src="activeDetailImage || getMainImage(selectedVehicle)" 
                                      :alt="selectedVehicle.model" 
-                                     class="w-full h-full object-cover">
+                                     class="w-full h-full object-contain cursor-zoom-in"
+                                     @click="zoomOpen = true">
+
+                                <button type="button" @click="previousDetailImage()" class="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg hover:bg-black/80" aria-label="Imagen anterior">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </button>
+                                <button type="button" @click="nextDetailImage()" class="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg hover:bg-black/80" aria-label="Imagen siguiente">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+                                <button type="button" @click="zoomOpen = true" class="absolute bottom-3 left-3 rounded-full bg-black/65 px-3 py-2 text-xs font-bold text-white">
+                                    <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Ampliar
+                                </button>
                                 
                                 <div class="absolute top-4 left-4">
                                     <span :class="{
@@ -842,6 +853,12 @@
         </div>
     </div>
 
+    <!-- Fullscreen image viewer -->
+    <div x-show="zoomOpen" x-cloak x-transition class="fixed inset-0 z-[70] flex items-center justify-center bg-black/95 p-3 sm:p-8" @click.self="zoomOpen = false">
+        <button type="button" @click="zoomOpen = false" class="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-2xl text-white" aria-label="Cerrar ampliación">×</button>
+        <img :src="activeDetailImage || (selectedVehicle && getMainImage(selectedVehicle))" alt="Imagen ampliada del vehículo" class="max-h-[92vh] max-w-full object-contain">
+    </div>
+
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 mt-auto py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-medium text-slate-500">
@@ -860,6 +877,7 @@
                 mobileMenuOpen: false,
                 formModalOpen: false,
                 detailModalOpen: false,
+                zoomOpen: false,
                 isEditing: false,
                 selectedVehicle: null,
                 activeDetailImage: null,
@@ -1234,8 +1252,20 @@
                     this.detailModalOpen = true;
                 },
 
+                previousDetailImage() {
+                    const images = this.getVehicleImages(this.selectedVehicle);
+                    const index = images.indexOf(this.activeDetailImage);
+                    this.activeDetailImage = images[(index - 1 + images.length) % images.length];
+                },
+
+                nextDetailImage() {
+                    const images = this.getVehicleImages(this.selectedVehicle);
+                    const index = images.indexOf(this.activeDetailImage);
+                    this.activeDetailImage = images[(index + 1) % images.length];
+                },
+
                 contactWhatsApp(text) {
-                    const phone = "56912345678";
+                    const phone = "5697569441";
                     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
                 }
             };
