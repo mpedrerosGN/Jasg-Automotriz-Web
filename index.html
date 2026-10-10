@@ -741,7 +741,9 @@
                                 <img :src="activeDetailImage || getMainImage(selectedVehicle)" 
                                      :alt="selectedVehicle.model" 
                                      class="w-full h-full object-contain cursor-zoom-in"
-                                     @click="zoomOpen = true">
+                                     @click="zoomOpen = true"
+                                     @touchstart="startDetailSwipe($event)"
+                                     @touchend="endDetailSwipe($event)">
 
                                 <button type="button" @click="previousDetailImage()" class="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg hover:bg-black/80" aria-label="Imagen anterior">
                                     <i class="fa-solid fa-chevron-left"></i>
@@ -893,6 +895,7 @@
                 activeDetailImage: null,
                 cardImageIndexes: {},
                 cardSwipeStarts: {},
+                detailSwipeStart: null,
 
                 vehicles: [],
 
@@ -1303,8 +1306,22 @@
                     this.activeDetailImage = images[(index + 1) % images.length];
                 },
 
+                startDetailSwipe(event) {
+                    this.detailSwipeStart = event.changedTouches[0].clientX;
+                },
+
+                endDetailSwipe(event) {
+                    if (this.detailSwipeStart === null) return;
+                    const distance = event.changedTouches[0].clientX - this.detailSwipeStart;
+                    if (Math.abs(distance) > 35) {
+                        if (distance < 0) this.nextDetailImage();
+                        else this.previousDetailImage();
+                    }
+                    this.detailSwipeStart = null;
+                },
+
                 contactWhatsApp(text) {
-                    const phone = "5697569441";
+                    const phone = "56975694441";
                     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
                 }
             };
