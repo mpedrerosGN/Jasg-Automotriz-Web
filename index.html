@@ -551,13 +551,13 @@
 
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Precio ($ CLP) *</label>
-                            <input type="number" x-model.number="formData.price" required min="0" placeholder="18500000"
+                            <input type="text" inputmode="numeric" x-model="formData.price" @input="formatFormNumber('price', $event)" required placeholder="18.500.000"
                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Kilometraje (Km) *</label>
-                            <input type="number" x-model.number="formData.mileage" required min="0" placeholder="25000"
+                            <input type="text" inputmode="numeric" x-model="formData.mileage" @input="formatFormNumber('mileage', $event)" required placeholder="25.000"
                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
                         </div>
 
@@ -968,7 +968,14 @@
                 },
 
                 saveToStorage() {
-                    localStorage.setItem('jasg_automotora_clean_data', JSON.stringify(this.vehicles));
+                    try {
+                        localStorage.setItem('jasg_automotora_clean_data', JSON.stringify(this.vehicles));
+                        return true;
+                    } catch (error) {
+                        console.error('No hay espacio suficiente en localStorage', error);
+                        alert('No fue posible guardar. Reduce la cantidad o el tamaño de las imágenes.');
+                        return false;
+                    }
                 },
 
                 // Filters logic
@@ -1055,6 +1062,15 @@
                     return new Intl.NumberFormat('es-CL').format(val || 0);
                 },
 
+                formatFormNumber(field, event) {
+                    const digits = String(event.target.value || '').replace(/\D/g, '');
+                    this.formData[field] = digits ? this.formatNumber(Number(digits)) : '';
+                },
+
+                parseFormNumber(value) {
+                    return Number(String(value || '').replace(/\D/g, '')) || 0;
+                },
+
                 // Modal Form Handlers
                 openCreateForm() {
                     this.isEditing = false;
@@ -1089,22 +1105,38 @@
 
                 async handleImageUpload(event) {
                     const files = Array.from(event.target.files || []);
-                    const validFiles = files.filter(file => {
+                    const dataUrls = [];
+                    for (const file of files) {
                         const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-                        if (!allowed.includes(file.type) || file.size > 5 * 1024 * 1024) {
-                            alert(`${file.name}: usa JPG, PNG o WebP de máximo 5 MB.`);
-                            return false;
+                        if (!allowed.includes(file.type) || file.size > 10 * 1024 * 1024) {
+                            alert(`${file.name}: usa JPG, PNG o WebP de máximo 10 MB.`);
+                            continue;
                         }
-                        return true;
-                    });
-                    const dataUrls = await Promise.all(validFiles.map(file => new Promise(resolve => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(file);
-                    })));
+                        const compressed = await this.compressImage(file);
+                        if (compressed) dataUrls.push(compressed);
+                    }
                     const current = this.formData.imagesInput ? this.formData.imagesInput.split(',').map(s => s.trim()).filter(Boolean) : [];
                     this.formData.imagesInput = [...current, ...dataUrls].join(', ');
                     event.target.value = '';
+                },
+
+                compressImage(file) {
+                    return new Promise(resolve => {
+                        const image = new Image();
+                        const reader = new FileReader();
+                        reader.onload = () => { image.src = reader.result; };
+                        image.onload = () => {
+                            const max = 1600;
+                            const scale = Math.min(1, max / Math.max(image.width, image.height));
+                            const canvas = document.createElement('canvas');
+                            canvas.width = Math.round(image.width * scale);
+                            canvas.height = Math.round(image.height * scale);
+                            canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL('image/jpeg', 0.72));
+                        };
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(file);
+                    });
                 },
 
                 saveVehicle() {
@@ -1121,8 +1153,8 @@
                         brand: this.formData.brand,
                         model: this.formData.model,
                         year: Number(this.formData.year),
-                        price: Number(this.formData.price),
-                        mileage: Number(this.formData.mileage),
+                        price: this.parseFormNumber(this.formData.price),
+                        mileage: this.parseFormNumber(this.formData.mileage),
                         category: this.formData.category,
                         transmission: this.formData.transmission,
                         fuel: this.formData.fuel,
