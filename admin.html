@@ -87,6 +87,11 @@
                         <i class="fa-solid fa-circle-plus text-base"></i>
                         <span>Publicar Vehículo</span>
                     </button>
+                    <button @click="signOutAdmin()" title="Cerrar sesión"
+                            class="border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Salir</span>
+                    </button>
                 </div>
 
                 <!-- Mobile Menu Button -->
@@ -114,6 +119,9 @@
             <button @click="openCreateForm(); mobileMenuOpen = false"
                     class="w-full text-center px-4 py-3 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center gap-2">
                 <i class="fa-solid fa-circle-plus"></i> Publicar Vehículo
+            </button>
+            <button @click="signOutAdmin()" class="w-full text-center px-4 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
             </button>
         </div>
     </header>
@@ -1324,6 +1332,10 @@
                 contactWhatsApp(text) {
                     const phone = "56975694441";
                     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+                },
+
+                async signOutAdmin() {
+                    if (window.jasgSignOut) await window.jasgSignOut();
                 }
             };
         }
