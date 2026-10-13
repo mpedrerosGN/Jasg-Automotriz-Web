@@ -995,7 +995,7 @@
                         this.saveToStorage();
                         return;
                     }
-                    const saved = localStorage.getItem('jasg_automotora_clean_data');
+                    const saved = localStorage.getItem('jasg_automotora_clean_data_v2');
                     if (saved) {
                         try {
                             this.vehicles = JSON.parse(saved).map(vehicle => ({
@@ -1005,10 +1005,10 @@
                                     : vehicle.images
                             }));
                         } catch(e) {
-                            this.loadSeedData();
+                            this.vehicles = [];
                         }
                     } else {
-                        this.loadSeedData();
+                        this.vehicles = [];
                     }
                 },
 
@@ -1093,7 +1093,7 @@
 
                 saveToStorage() {
                     try {
-                        localStorage.setItem('jasg_automotora_clean_data', JSON.stringify(this.vehicles));
+                        localStorage.setItem('jasg_automotora_clean_data_v2', JSON.stringify(this.vehicles));
                         return true;
                     } catch (error) {
                         console.error('No hay espacio suficiente en localStorage', error);
