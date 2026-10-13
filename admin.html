@@ -1407,21 +1407,20 @@
                         features: featuresList
                     };
 
-                    if (this.isEditing) {
-                        const index = this.vehicles.findIndex(v => v.id === newObj.id);
-                        if (index !== -1) this.vehicles[index] = newObj;
-                    } else {
-                        this.vehicles.unshift(newObj);
-                    }
-
-                    this.saveToStorage();
-                    const session = await window.jasgSupabase?.auth.getSession();
-                    const remote = await window.jasgDb?.saveVehicle(newObj, session?.data?.session?.user?.id);
-                    if (remote?.error) console.warn('No se pudo sincronizar con Supabase:', remote.error.message);
-                    else if (remote?.data) {
+                    try {
+                        const session = await window.jasgSupabase?.auth.getSession();
+                        const remote = await window.jasgDb?.saveVehicle(newObj, session?.data?.session?.user?.id);
+                        if (!remote || remote.error) {
+                            throw new Error(remote?.error?.message || 'No se pudo conectar con Supabase.');
+                        }
                         const index = this.vehicles.findIndex(v => v.id === newObj.id);
                         if (index !== -1) this.vehicles[index] = remote.data;
+                        else this.vehicles.unshift(remote.data);
                         this.saveToStorage();
+                    } catch (error) {
+                        console.error('Error al publicar vehículo:', error);
+                        alert(`No se pudo publicar en la base de datos. ${error.message}`);
+                        return;
                     }
                     this.formModalOpen = false;
                 },
