@@ -233,11 +233,11 @@
                     <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-300 flex flex-col group">
                         
                         <!-- Image Container -->
-                        <div class="relative h-60 bg-slate-100 overflow-hidden">
+                        <div class="relative h-72 sm:h-80 bg-slate-100 overflow-hidden">
                             <img :src="getCardImage(vehicle)" 
                                  :alt="vehicle.brand + ' ' + vehicle.model"
                                  :class="vehicle.status === 'Vendido' ? 'brightness-50 saturate-50' : ''"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                 class="w-full h-full object-contain group-hover:scale-[1.02] transition duration-500"
                                  @touchstart="startCardSwipe(vehicle, $event)"
                                  @touchend="endCardSwipe(vehicle, $event)">
 
