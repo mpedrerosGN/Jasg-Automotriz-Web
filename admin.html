@@ -571,7 +571,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Marca *</label>
-                            <input type="text" list="vehicle-brands" x-model="formData.brand" required placeholder="Busca una marca..."
+                            <input type="text" list="vehicle-brands" x-model="formData.brand" @change="formData.model = ''" required placeholder="Busca una marca..."
                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
                             <datalist id="vehicle-brands">
                                 <template x-for="brand in brandCatalog" :key="brand"><option :value="brand"></option></template>
@@ -583,9 +583,9 @@
                             <input type="text" list="vehicle-models" x-model="formData.model" required placeholder="Busca un modelo..."
                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
                             <datalist id="vehicle-models">
-                                <template x-for="model in (vehicleModels[formData.brand] || commonVehicleModels)" :key="model"><option :value="model"></option></template>
+                                <template x-for="model in (vehicleModels[formData.brand] || [])" :key="model"><option :value="model"></option></template>
                             </datalist>
-                            <p class="mt-1 text-[11px] text-slate-500">Selecciona una sugerencia o escribe un modelo nuevo.</p>
+                            <p class="mt-1 text-[11px] text-slate-500" x-text="vehicleModels[formData.brand]?.length ? 'Selecciona un modelo de esta marca.' : 'Selecciona una marca para cargar sus modelos.'"></p>
                         </div>
 
                         <div>
@@ -992,8 +992,8 @@
 
                 categories: ['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Deportivo', 'Comercial'],
                 brandCatalog: ['ACURA', 'AUDI', 'BMW', 'BYD', 'CHEVROLET', 'CHERY', 'CITROËN', 'DODGE', 'FIAT', 'FORD', 'FOTON', 'GEELY', 'GREAT WALL', 'HAVAL', 'HONDA', 'HYUNDAI', 'JAC', 'JEEP', 'KIA', 'LAND ROVER', 'LEXUS', 'MAHINDRA', 'MAXUS', 'MAZDA', 'MERCEDES-BENZ', 'MG', 'MITSUBISHI', 'NISSAN', 'OPEL', 'PEUGEOT', 'RAM', 'RENAULT', 'SEAT', 'SKODA', 'SUBARU', 'SUZUKI', 'TESLA', 'TOYOTA', 'VOLKSWAGEN', 'VOLVO'],
-                commonVehicleModels: ['Sedán', 'SUV', 'Hatchback', 'Pickup', 'Van', 'Furgón', 'Camión', 'Otro'],
                 vehicleModels: {
+                    'ACURA': ['Integra', 'TLX', 'RDX', 'MDX', 'NSX'],
                     'TOYOTA': ['Yaris', 'Corolla', 'Camry', 'RAV4', 'Hilux', 'Land Cruiser', 'Fortuner', 'Prado'],
                     'FORD': ['Fiesta', 'Focus', 'Mustang', 'Ranger', 'F-150', 'Explorer', 'Escape', 'Bronco', 'Transit'],
                     'CHEVROLET': ['Spark', 'Sail', 'Onix', 'Cruze', 'Tracker', 'Captiva', 'Trailblazer', 'Silverado', 'Colorado'],
