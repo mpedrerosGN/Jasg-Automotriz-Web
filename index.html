@@ -748,8 +748,15 @@
                                      :alt="selectedVehicle.model" 
                                      class="w-full h-full object-contain cursor-zoom-in"
                                      @click="zoomOpen = true"
+                                     @mousemove="moveDetailMagnifier($event)"
+                                     @mouseenter="activateDetailMagnifier()"
+                                     @mouseleave="deactivateDetailMagnifier()"
                                      @touchstart="startDetailSwipe($event)"
                                      @touchend="endDetailSwipe($event)">
+
+                                <div x-show="detailMagnifier.active" x-cloak
+                                     class="magnifier-glass hidden md:block"
+                                     :style="detailMagnifierStyle()"></div>
 
                                 <button type="button" @click="previousDetailImage()" class="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg hover:bg-black/80" aria-label="Imagen anterior">
                                     <i class="fa-solid fa-chevron-left"></i>
@@ -904,6 +911,7 @@
                 cardSwipeStarts: {},
                 magnifier: { active: false, vehicleId: null, image: '', x: 50, y: 50 },
                 detailSwipeStart: null,
+                detailMagnifier: { active: false, x: 50, y: 50 },
 
                 vehicles: [],
 
@@ -1337,6 +1345,32 @@
                     const images = this.getVehicleImages(this.selectedVehicle);
                     const index = images.indexOf(this.activeDetailImage);
                     this.activeDetailImage = images[(index + 1) % images.length];
+                },
+
+                activateDetailMagnifier() {
+                    this.detailMagnifier.active = true;
+                },
+
+                moveDetailMagnifier(event) {
+                    if (!this.detailMagnifier.active) return;
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    this.detailMagnifier.x = ((event.clientX - rect.left) / rect.width) * 100;
+                    this.detailMagnifier.y = ((event.clientY - rect.top) / rect.height) * 100;
+                },
+
+                deactivateDetailMagnifier() {
+                    this.detailMagnifier.active = false;
+                },
+
+                detailMagnifierStyle() {
+                    const image = this.activeDetailImage || (this.selectedVehicle && this.getMainImage(this.selectedVehicle));
+                    return {
+                        left: `calc(${this.detailMagnifier.x}% - 66px)`,
+                        top: `calc(${this.detailMagnifier.y}% - 66px)`,
+                        backgroundImage: `url("${image}")`,
+                        backgroundSize: '250% 250%',
+                        backgroundPosition: `${this.detailMagnifier.x}% ${this.detailMagnifier.y}%`
+                    };
                 },
 
                 startDetailSwipe(event) {
