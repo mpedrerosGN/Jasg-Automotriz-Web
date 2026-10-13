@@ -42,9 +42,8 @@
       const result = await client().from('vehicles').upsert(payload).select().single();
       if (result.error) return result;
       const vehicleId = result.data.id;
-      await client().from('vehicle_images').delete().eq('vehicle_id', vehicleId);
       const images = [];
-      for (const [sort_order, image] of (vehicle.images || []).entries()) {
+      for (const image of (vehicle.images || [])) {
         if (!String(image).startsWith('data:image')) {
           images.push(image);
           continue;
@@ -59,7 +58,13 @@
         const publicUrl = client().storage.from('vehicle-images').getPublicUrl(path).data.publicUrl;
         images.push(publicUrl);
       }
-      if (images.length) await client().from('vehicle_images').insert(images.map((image_url, sort_order) => ({ vehicle_id: vehicleId, image_url, sort_order })));
+      // Conservar las fotos anteriores hasta terminar de subir las nuevas.
+      const removed = await client().from('vehicle_images').delete().eq('vehicle_id', vehicleId);
+      if (removed.error) return { data: null, error: removed.error };
+      if (images.length) {
+        const inserted = await client().from('vehicle_images').insert(images.map((image_url, sort_order) => ({ vehicle_id: vehicleId, image_url, sort_order })));
+        if (inserted.error) return { data: null, error: inserted.error };
+      }
       return { data: { ...vehicle, id: vehicleId, images }, error: null };
     }
   };

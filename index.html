@@ -42,7 +42,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js?v=5"></script>
-    <script src="supabase-data.js?v=1"></script>
+    <script src="supabase-data.js?v=2"></script>
+    <script src="vehicle-gallery.js?v=1"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -740,7 +741,7 @@
                     <div class="p-6 sm:p-8 space-y-8">
                         
                         <!-- Image Gallery Component -->
-                        <div class="space-y-3">
+                        <div class="space-y-3" @mouseenter="detailGalleryHovered = window.matchMedia('(hover: hover) and (pointer: fine)').matches" @mouseleave="detailGalleryHovered = false">
                             <div class="relative rounded-2xl overflow-hidden bg-slate-100 h-80 sm:h-96 border border-slate-200 shadow-sm">
                                 <img :src="activeDetailImage || getMainImage(selectedVehicle)" 
                                      :alt="selectedVehicle.model" 
@@ -781,11 +782,19 @@
                                 </div>
                             </div>
 
+                            <div x-show="getVehicleImages(selectedVehicle).length > 1" class="flex items-center justify-between gap-3 text-xs text-slate-600">
+                                <span x-text="`${getVehicleImages(selectedVehicle).indexOf(activeDetailImage) + 1} / ${getVehicleImages(selectedVehicle).length} fotos`"></span>
+                                <button type="button" @click="toggleDetailSlideshow()" :aria-pressed="detailSlideshowPlaying" class="min-h-11 rounded-lg border border-brand-500/30 bg-brand-50 px-3 font-bold text-brand-700">
+                                    <i class="fa-solid mr-1" :class="detailSlideshowPlaying ? 'fa-pause' : 'fa-play'"></i>
+                                    <span x-text="detailSlideshowPlaying ? 'Pausar carrusel' : 'Reproducir carrusel'"></span>
+                                </button>
+                            </div>
+
                             <!-- Thumbnails selector -->
                             <template x-if="getVehicleImages(selectedVehicle).length > 1">
-                                <div class="flex items-center gap-3 overflow-x-auto pb-2">
+                                <div x-ref="detailThumbnails" class="relative flex items-center gap-3 overflow-x-auto pb-2">
                                     <template x-for="(img, idx) in getVehicleImages(selectedVehicle)" :key="idx">
-                                        <button @click="activeDetailImage = img" 
+                                        <button @click="selectDetailImage(img)" :aria-label="`Ver foto ${idx + 1}`" :aria-pressed="activeDetailImage === img"
                                                 :class="activeDetailImage === img ? 'ring-2 ring-brand-600 border-transparent' : 'border-slate-200 opacity-70 hover:opacity-100'"
                                                 class="w-20 h-16 rounded-xl overflow-hidden border bg-slate-100 flex-shrink-0 transition">
                                             <img :src="img" class="w-full h-full object-cover">
@@ -901,6 +910,7 @@
     <script>
         function automotoraApp() {
             return {
+                ...window.jasgGallery(),
                 currentView: 'catalog',
                 publicOnly: true,
                 mobileMenuOpen: false,
@@ -989,6 +999,7 @@
 
                 // Initialize App Data
                 async initApp() {
+                    this.initGallery();
                     const remote = await window.jasgDb?.listVehicles();
                     if (remote?.data?.length) {
                         this.vehicles = remote.data;
@@ -1353,18 +1364,17 @@
                     this.selectedVehicle = vehicle;
                     this.activeDetailImage = this.getMainImage(vehicle);
                     this.detailModalOpen = true;
+                    this.detailGalleryHovered = false;
+                    this.detailSwipeOrigin = null;
+                    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) this.startDetailSlideshow();
                 },
 
                 previousDetailImage() {
-                    const images = this.getVehicleImages(this.selectedVehicle);
-                    const index = images.indexOf(this.activeDetailImage);
-                    this.activeDetailImage = images[(index - 1 + images.length) % images.length];
+                    this.changeDetailImage(-1, true);
                 },
 
                 nextDetailImage() {
-                    const images = this.getVehicleImages(this.selectedVehicle);
-                    const index = images.indexOf(this.activeDetailImage);
-                    this.activeDetailImage = images[(index + 1) % images.length];
+                    this.changeDetailImage(1, true);
                 },
 
                 activateDetailMagnifier() {
@@ -1394,17 +1404,11 @@
                 },
 
                 startDetailSwipe(event) {
-                    this.detailSwipeStart = event.changedTouches[0].clientX;
+                    this.beginGallerySwipe(event);
                 },
 
                 endDetailSwipe(event) {
-                    if (this.detailSwipeStart === null) return;
-                    const distance = event.changedTouches[0].clientX - this.detailSwipeStart;
-                    if (Math.abs(distance) > 35) {
-                        if (distance < 0) this.nextDetailImage();
-                        else this.previousDetailImage();
-                    }
-                    this.detailSwipeStart = null;
+                    this.finishGallerySwipe(event);
                 },
 
                 contactWhatsApp(text) {

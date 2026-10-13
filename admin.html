@@ -42,7 +42,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js?v=5"></script>
-    <script src="supabase-data.js?v=1"></script>
+    <script src="supabase-data.js?v=2"></script>
+    <script src="vehicle-gallery.js?v=1"></script>
     <script src="auth.js?v=2"></script>
 
     <style>
@@ -659,22 +660,32 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">URLs de Imágenes (Separadas por comas o saltos de línea)</label>
                         <textarea x-model="formData.imagesInput" rows="2" :required="formData.uploadedImages.length === 0" placeholder="Una URL por línea o sube imágenes abajo"
                                   class="w-full bg-white border border-slate-200 text-slate-800 rounded-xl p-3 text-sm font-medium gold-focus"></textarea>
+                        <button type="button" @click="addImageLinks()" :disabled="imageUploadBusy || vehicleSaving" class="mt-2 min-h-11 rounded-lg border border-brand-500 px-4 text-sm font-bold text-brand-700 disabled:opacity-40">Agregar enlaces a la galería</button>
                         <label class="mt-3 flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-brand-500/50 bg-brand-50 px-4 py-3 text-sm font-bold text-brand-800 hover:bg-brand-100 transition">
                             <i class="fa-solid fa-cloud-arrow-up"></i> Subir imágenes desde este equipo
-                            <input type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" @change="handleImageUpload($event)">
+                            <input type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" :disabled="imageUploadBusy || vehicleSaving" @change="handleImageUpload($event)">
                             <span class="text-[11px] font-medium text-slate-500">Puedes seleccionar varias a la vez</span>
                         </label>
-                        <div x-show="formData.uploadedImages.length" class="mt-3 grid grid-cols-4 gap-2">
+                        <p class="mt-3 text-xs text-slate-600">La primera foto será la portada. Usa las flechas para ordenar las imágenes antes de guardar.</p>
+                        <p x-show="imageUploadBusy" role="status" class="mt-2 text-sm font-semibold text-brand-700">Procesando fotos…</p>
+                        <div x-show="formData.uploadedImages.length" class="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                             <template x-for="(image, index) in formData.uploadedImages" :key="index">
-                                <div class="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-white">
-                                    <img :src="image" alt="Imagen seleccionada" class="h-full w-full object-cover">
-                                    <button type="button" @click="formData.uploadedImages.splice(index, 1)" class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-xs text-white" aria-label="Quitar imagen">×</button>
+                                <div class="overflow-hidden rounded-xl border bg-white" :class="index === 0 ? 'border-brand-500 ring-1 ring-brand-500' : 'border-slate-200'">
+                                    <div class="relative aspect-square bg-slate-100">
+                                        <img :src="image" :alt="`Foto ${index + 1}`" class="h-full w-full object-contain">
+                                        <span class="absolute left-1 top-1 rounded-md bg-black/75 px-2 py-1 text-xs font-bold text-white" x-text="index === 0 ? '1 · Portada' : index + 1"></span>
+                                    </div>
+                                    <div class="grid grid-cols-3 border-t border-slate-100">
+                                        <button type="button" @click="moveFormImage(index, index - 1)" :disabled="index === 0 || imageUploadBusy || vehicleSaving" class="min-h-11 text-brand-700 disabled:opacity-25" :aria-label="`Mover foto ${index + 1} antes`"><i class="fa-solid fa-arrow-left"></i></button>
+                                        <button type="button" @click="formData.uploadedImages.splice(index, 1)" :disabled="imageUploadBusy || vehicleSaving" class="min-h-11 text-rose-600 disabled:opacity-25" :aria-label="`Quitar foto ${index + 1}`"><i class="fa-solid fa-trash"></i></button>
+                                        <button type="button" @click="moveFormImage(index, index + 1)" :disabled="index === formData.uploadedImages.length - 1 || imageUploadBusy || vehicleSaving" class="min-h-11 text-brand-700 disabled:opacity-25" :aria-label="`Mover foto ${index + 1} después`"><i class="fa-solid fa-arrow-right"></i></button>
+                                    </div>
+                                    <button type="button" @click="moveFormImage(index, 0)" :disabled="index === 0 || imageUploadBusy || vehicleSaving" class="min-h-11 w-full border-t border-slate-100 text-xs font-bold text-brand-700 disabled:opacity-40" x-text="index === 0 ? 'Portada seleccionada' : 'Usar como portada'"></button>
                                 </div>
                             </template>
                         </div>
                         <p x-show="formData.uploadedImages.length" class="text-xs font-semibold text-brand-700" x-text="`${formData.uploadedImages.length} imagen(es) seleccionada(s)`"></p>
-                        <p class="text-xs text-slate-500 mt-1">JPG, PNG o WebP · máximo 5 MB por imagen. Luego se conectará a Supabase Storage.</p>
-                        <p class="text-xs text-slate-500 mt-1">Ingresa al menos una URL de imagen válida.</p>
+                        <p class="text-xs text-slate-500 mt-1">JPG, PNG o WebP · máximo 10 MB por imagen.</p>
                     </div>
 
                     <!-- YouTube Video Integration -->
@@ -751,8 +762,8 @@
                     <button type="button" @click="formModalOpen = false" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-100 transition">
                         Cancelar
                     </button>
-                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-md shadow-brand-600/30 transition">
-                        <span x-text="isEditing ? 'Guardar Cambios' : 'Publicar Vehículo'"></span>
+                    <button type="submit" :disabled="imageUploadBusy || vehicleSaving" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-md shadow-brand-600/30 transition disabled:opacity-50">
+                        <span x-text="vehicleSaving ? 'Guardando…' : (isEditing ? 'Guardar Cambios' : 'Publicar Vehículo')"></span>
                     </button>
                 </div>
             </form>
@@ -785,7 +796,7 @@
                     <div class="p-6 sm:p-8 space-y-8">
                         
                         <!-- Image Gallery Component -->
-                        <div class="space-y-3">
+                        <div class="space-y-3" @mouseenter="detailGalleryHovered = window.matchMedia('(hover: hover) and (pointer: fine)').matches" @mouseleave="detailGalleryHovered = false">
                             <div class="relative rounded-2xl overflow-hidden bg-slate-100 h-80 sm:h-96 border border-slate-200 shadow-sm">
                                 <img :src="activeDetailImage || getMainImage(selectedVehicle)" 
                                      :alt="selectedVehicle.model" 
@@ -819,11 +830,19 @@
                                 </div>
                             </div>
 
+                            <div x-show="getVehicleImages(selectedVehicle).length > 1" class="flex items-center justify-between gap-3 text-xs text-slate-600">
+                                <span x-text="`${getVehicleImages(selectedVehicle).indexOf(activeDetailImage) + 1} / ${getVehicleImages(selectedVehicle).length} fotos`"></span>
+                                <button type="button" @click="toggleDetailSlideshow()" :aria-pressed="detailSlideshowPlaying" class="min-h-11 rounded-lg border border-brand-500/30 bg-brand-50 px-3 font-bold text-brand-700">
+                                    <i class="fa-solid mr-1" :class="detailSlideshowPlaying ? 'fa-pause' : 'fa-play'"></i>
+                                    <span x-text="detailSlideshowPlaying ? 'Pausar carrusel' : 'Reproducir carrusel'"></span>
+                                </button>
+                            </div>
+
                             <!-- Thumbnails selector -->
                             <template x-if="getVehicleImages(selectedVehicle).length > 1">
-                                <div class="flex items-center gap-3 overflow-x-auto pb-2">
+                                <div x-ref="detailThumbnails" class="relative flex items-center gap-3 overflow-x-auto pb-2">
                                     <template x-for="(img, idx) in getVehicleImages(selectedVehicle)" :key="idx">
-                                        <button @click="activeDetailImage = img" 
+                                        <button @click="selectDetailImage(img)" :aria-label="`Ver foto ${idx + 1}`" :aria-pressed="activeDetailImage === img"
                                                 :class="activeDetailImage === img ? 'ring-2 ring-brand-600 border-transparent' : 'border-slate-200 opacity-70 hover:opacity-100'"
                                                 class="w-20 h-16 rounded-xl overflow-hidden border bg-slate-100 flex-shrink-0 transition">
                                             <img :src="img" class="w-full h-full object-cover">
@@ -934,6 +953,7 @@
     <script>
         function automotoraApp() {
             return {
+                ...window.jasgGallery(),
                 currentView: 'catalog',
                 publicOnly: false,
                 mobileMenuOpen: false,
@@ -1023,6 +1043,7 @@
 
                 // Initialize App Data
                 async initApp() {
+                    this.initGallery();
                     const remote = await window.jasgDb?.listVehicles();
                     if (remote?.data?.length) {
                         this.vehicles = remote.data;
@@ -1312,8 +1333,8 @@
                     this.isEditing = true;
                     this.formData = {
                         ...vehicle,
-                        imagesInput: Array.isArray(vehicle.images) ? vehicle.images.filter(image => !String(image).startsWith('data:image')).join('\n') : (vehicle.images || ''),
-                        uploadedImages: Array.isArray(vehicle.images) ? vehicle.images.filter(image => String(image).startsWith('data:image')) : [],
+                        imagesInput: '',
+                        uploadedImages: Array.isArray(vehicle.images) ? [...vehicle.images] : (vehicle.images ? [vehicle.images] : []),
                         featuresInput: Array.isArray(vehicle.features) ? vehicle.features.join(', ') : (vehicle.features || ''),
                         selectedFeatures: Array.isArray(vehicle.features) ? [...vehicle.features] : this.parseFeatures(vehicle.features)
                     };
@@ -1350,19 +1371,25 @@
                 },
 
                 async handleImageUpload(event) {
-                    const files = Array.from(event.target.files || []);
-                    const dataUrls = [];
-                    for (const file of files) {
-                        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-                        if (!allowed.includes(file.type) || file.size > 10 * 1024 * 1024) {
-                            alert(`${file.name}: usa JPG, PNG o WebP de máximo 10 MB.`);
-                            continue;
+                    if (this.imageUploadBusy) return;
+                    this.imageUploadBusy = true;
+                    try {
+                        const files = Array.from(event.target.files || []);
+                        const dataUrls = [];
+                        for (const file of files) {
+                            const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+                            if (!allowed.includes(file.type) || file.size > 10 * 1024 * 1024) {
+                                alert(`${file.name}: usa JPG, PNG o WebP de máximo 10 MB.`);
+                                continue;
+                            }
+                            const compressed = await this.compressImage(file);
+                            if (compressed) dataUrls.push(compressed);
                         }
-                        const compressed = await this.compressImage(file);
-                        if (compressed) dataUrls.push(compressed);
+                        this.formData.uploadedImages = [...this.formData.uploadedImages, ...dataUrls];
+                    } finally {
+                        this.imageUploadBusy = false;
+                        event.target.value = '';
                     }
-                    this.formData.uploadedImages = [...this.formData.uploadedImages, ...dataUrls];
-                    event.target.value = '';
                 },
 
                 compressImage(file) {
@@ -1379,13 +1406,16 @@
                             canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
                             resolve(canvas.toDataURL('image/jpeg', 0.72));
                         };
+                        image.onerror = () => resolve(null);
                         reader.onerror = () => resolve(null);
                         reader.readAsDataURL(file);
                     });
                 },
 
                 async saveVehicle() {
-                    const imagesList = [...this.parseImagesInput(this.formData.imagesInput), ...this.formData.uploadedImages];
+                    if (this.imageUploadBusy || this.vehicleSaving) return;
+                    if (!this.addImageLinks()) return;
+                    const imagesList = [...this.formData.uploadedImages];
 
                     const featuresList = this.formData.selectedFeatures.length
                         ? [...this.formData.selectedFeatures]
@@ -1409,6 +1439,7 @@
                     };
 
                     try {
+                        this.vehicleSaving = true;
                         const session = await window.jasgSupabase?.auth.getSession();
                         if (!session?.data?.session) throw new Error('Tu sesión expiró. Ingresa nuevamente al panel.');
                         const remote = await window.jasgDb?.saveVehicle(newObj, session?.data?.session?.user?.id);
@@ -1423,6 +1454,8 @@
                         console.error('Error al publicar vehículo:', error);
                         alert(`No se pudo publicar en la base de datos. ${error.message}`);
                         return;
+                    } finally {
+                        this.vehicleSaving = false;
                     }
                     this.formModalOpen = false;
                 },
@@ -1446,32 +1479,25 @@
                     this.selectedVehicle = vehicle;
                     this.activeDetailImage = this.getMainImage(vehicle);
                     this.detailModalOpen = true;
+                    this.detailGalleryHovered = false;
+                    this.detailSwipeOrigin = null;
+                    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) this.startDetailSlideshow();
                 },
 
                 previousDetailImage() {
-                    const images = this.getVehicleImages(this.selectedVehicle);
-                    const index = images.indexOf(this.activeDetailImage);
-                    this.activeDetailImage = images[(index - 1 + images.length) % images.length];
+                    this.changeDetailImage(-1, true);
                 },
 
                 nextDetailImage() {
-                    const images = this.getVehicleImages(this.selectedVehicle);
-                    const index = images.indexOf(this.activeDetailImage);
-                    this.activeDetailImage = images[(index + 1) % images.length];
+                    this.changeDetailImage(1, true);
                 },
 
                 startDetailSwipe(event) {
-                    this.detailSwipeStart = event.changedTouches[0].clientX;
+                    this.beginGallerySwipe(event);
                 },
 
                 endDetailSwipe(event) {
-                    if (this.detailSwipeStart === null) return;
-                    const distance = event.changedTouches[0].clientX - this.detailSwipeStart;
-                    if (Math.abs(distance) > 35) {
-                        if (distance < 0) this.nextDetailImage();
-                        else this.previousDetailImage();
-                    }
-                    this.detailSwipeStart = null;
+                    this.finishGallerySwipe(event);
                 },
 
                 contactWhatsApp(text) {
