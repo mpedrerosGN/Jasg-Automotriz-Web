@@ -43,6 +43,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js?v=5"></script>
     <script src="supabase-data.js?v=1"></script>
+    <script src="auth.js?v=2"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -1409,6 +1410,7 @@
 
                     try {
                         const session = await window.jasgSupabase?.auth.getSession();
+                        if (!session?.data?.session) throw new Error('Tu sesión expiró. Ingresa nuevamente al panel.');
                         const remote = await window.jasgDb?.saveVehicle(newObj, session?.data?.session?.user?.id);
                         if (!remote || remote.error) {
                             throw new Error(remote?.error?.message || 'No se pudo conectar con Supabase.');
@@ -1483,8 +1485,5 @@
             };
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-client.js?v=4"></script>
-    <script src="auth.js?v=1"></script>
 </body>
 </html>
