@@ -742,7 +742,7 @@
                                 <img :src="activeDetailImage || getMainImage(selectedVehicle)" 
                                      :alt="selectedVehicle.model" 
                                      class="w-full h-full object-contain cursor-zoom-in"
-                                     @click="zoomOpen = true"
+                                     @click="openZoom()"
                                      @mousemove="moveDetailMagnifier($event)"
                                      @mouseenter="activateDetailMagnifier()"
                                      @mouseleave="deactivateDetailMagnifier()"
@@ -759,7 +759,7 @@
                                 <button type="button" @click="nextDetailImage()" class="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white shadow-lg hover:bg-black/80" aria-label="Imagen siguiente">
                                     <i class="fa-solid fa-chevron-right"></i>
                                 </button>
-                                <button type="button" @click="zoomOpen = true" class="absolute bottom-3 left-3 rounded-full bg-black/65 px-3 py-2 text-xs font-bold text-white">
+                                <button type="button" @click="openZoom()" class="absolute bottom-3 left-3 rounded-full bg-black/65 px-3 py-2 text-xs font-bold text-white">
                                     <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Ampliar
                                 </button>
                                 
@@ -912,6 +912,12 @@
                 cardSwipeStarts: {},
                 detailSwipeStart: null,
                 detailMagnifier: { active: false, x: 50, y: 50 },
+
+                openZoom() {
+                    this.zoomScale = 1;
+                    this.zoomOpen = true;
+                    this.$nextTick(() => this.applyZoomScale());
+                },
 
                 closeZoom() {
                     this.zoomOpen = false;
