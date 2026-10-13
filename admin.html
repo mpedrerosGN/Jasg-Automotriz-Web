@@ -706,9 +706,33 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Equipamiento (Separado por comas)</label>
-                        <input type="text" x-model="formData.featuresInput" placeholder="Ej: Climatizador dual, Asientos de cuero, Sunroof, Apple CarPlay"
-                               class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Equipamiento</label>
+                            <span class="text-[11px] font-semibold text-brand-700" x-text="`${formData.selectedFeatures.length} seleccionado(s)`"></span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 min-h-11 rounded-xl border border-slate-200 bg-white p-2">
+                            <template x-for="feature in formData.selectedFeatures" :key="feature">
+                                <span class="inline-flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-800">
+                                    <span x-text="feature"></span>
+                                    <button type="button" @click="toggleEquipment(feature)" class="font-black text-brand-600 hover:text-rose-600" aria-label="Quitar equipamiento">×</button>
+                                </span>
+                            </template>
+                            <span x-show="!formData.selectedFeatures.length" class="px-1 py-1 text-xs text-slate-400">Selecciona uno o varios elementos abajo</span>
+                        </div>
+                        <input type="search" x-model="equipmentSearch" placeholder="Buscar equipamiento..." class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:border-brand-600">
+                        <div class="mt-2 grid max-h-40 grid-cols-1 gap-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2 sm:grid-cols-2">
+                            <template x-for="feature in equipmentCatalog.filter(item => item.toLowerCase().includes(equipmentSearch.toLowerCase()))" :key="feature">
+                                <button type="button" @click="toggleEquipment(feature)" class="flex items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold transition" :class="formData.selectedFeatures.includes(feature) ? 'bg-brand-100 text-brand-800 ring-1 ring-brand-300' : 'bg-white text-slate-700 hover:bg-brand-50'">
+                                    <i class="fa-solid" :class="formData.selectedFeatures.includes(feature) ? 'fa-square-check text-brand-600' : 'fa-square text-slate-300'"></i>
+                                    <span x-text="feature"></span>
+                                </button>
+                            </template>
+                        </div>
+                        <div class="mt-2 flex gap-2">
+                            <input type="text" x-model="newEquipment" @keydown.enter.prevent="addEquipment()" placeholder="Nuevo equipamiento personalizado" class="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:border-brand-600">
+                            <button type="button" @click="addEquipment()" class="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700">Agregar</button>
+                        </div>
+                        <p class="mt-1 text-[11px] text-slate-500">Los elementos personalizados se guardan en este navegador.</p>
                     </div>
                 </div>
 
@@ -943,8 +967,21 @@
                     imagesInput: '',
                     uploadedImages: [],
                     youtubeUrl: '',
-                    featuresInput: ''
+                    featuresInput: '',
+                    selectedFeatures: []
                 },
+
+                equipmentSearch: '',
+                newEquipment: '',
+                equipmentCatalog: [
+                    'Aire acondicionado', 'Climatizador dual', 'Apple CarPlay', 'Android Auto', 'Cámara de retroceso',
+                    'Cámara 360°', 'Sensores de estacionamiento', 'Control crucero', 'Control crucero adaptativo',
+                    'Techo panorámico', 'Sunroof eléctrico', 'Asientos de cuero', 'Asientos calefaccionados',
+                    'Volante multifunción', 'Keyless / acceso sin llave', 'Botón de encendido', 'Alzavidrios eléctricos',
+                    'Espejos eléctricos', 'Cierre centralizado', 'Bluetooth', 'USB', 'Sistema de navegación GPS',
+                    'Luces LED', 'Neblineros', 'Llantas de aleación', 'Barras de techo', 'Doble airbag',
+                    'Airbags laterales', 'Frenos ABS', 'Control de estabilidad', 'Modo Eco', 'Tracción 4x4'
+                ],
 
                 categories: ['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Deportivo', 'Comercial'],
                 brandCatalog: ['ACURA', 'AUDI', 'BMW', 'BYD', 'CHEVROLET', 'CHERY', 'CITROËN', 'DODGE', 'FIAT', 'FORD', 'FOTON', 'GEELY', 'GREAT WALL', 'HAVAL', 'HONDA', 'HYUNDAI', 'JAC', 'JEEP', 'KIA', 'LAND ROVER', 'LEXUS', 'MAHINDRA', 'MAXUS', 'MAZDA', 'MERCEDES-BENZ', 'MG', 'MITSUBISHI', 'NISSAN', 'OPEL', 'PEUGEOT', 'RAM', 'RENAULT', 'SEAT', 'SKODA', 'SUBARU', 'SUZUKI', 'TESLA', 'TOYOTA', 'VOLKSWAGEN', 'VOLVO'],
@@ -975,6 +1012,10 @@
 
                 // Initialize App Data
                 initApp() {
+                    const savedEquipment = localStorage.getItem('jasg_equipment_catalog');
+                    if (savedEquipment) {
+                        try { this.equipmentCatalog = [...new Set([...this.equipmentCatalog, ...JSON.parse(savedEquipment)])]; } catch (error) { console.warn('No se pudo cargar el equipamiento personalizado', error); }
+                    }
                     const saved = localStorage.getItem('jasg_automotora_clean_data');
                     if (saved) {
                         try {
@@ -1220,7 +1261,8 @@
                         imagesInput: '',
                         uploadedImages: [],
                         youtubeUrl: '',
-                        featuresInput: ''
+                        featuresInput: '',
+                        selectedFeatures: []
                     };
                     this.formModalOpen = true;
                 },
@@ -1231,7 +1273,8 @@
                         ...vehicle,
                         imagesInput: Array.isArray(vehicle.images) ? vehicle.images.filter(image => !String(image).startsWith('data:image')).join('\n') : (vehicle.images || ''),
                         uploadedImages: Array.isArray(vehicle.images) ? vehicle.images.filter(image => String(image).startsWith('data:image')) : [],
-                        featuresInput: Array.isArray(vehicle.features) ? vehicle.features.join(', ') : (vehicle.features || '')
+                        featuresInput: Array.isArray(vehicle.features) ? vehicle.features.join(', ') : (vehicle.features || ''),
+                        selectedFeatures: Array.isArray(vehicle.features) ? [...vehicle.features] : this.parseFeatures(vehicle.features)
                     };
                     this.formModalOpen = true;
                 },
@@ -1242,6 +1285,27 @@
                         .flatMap(item => item.split(/\r?\n/))
                         .map(item => item.trim())
                         .filter(Boolean);
+                },
+
+                parseFeatures(value) {
+                    return String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+                },
+
+                toggleEquipment(feature) {
+                    const selected = this.formData.selectedFeatures;
+                    this.formData.selectedFeatures = selected.includes(feature)
+                        ? selected.filter(item => item !== feature)
+                        : [...selected, feature];
+                    this.formData.featuresInput = this.formData.selectedFeatures.join(', ');
+                },
+
+                addEquipment() {
+                    const feature = this.newEquipment.trim();
+                    if (!feature) return;
+                    if (!this.equipmentCatalog.includes(feature)) this.equipmentCatalog = [...this.equipmentCatalog, feature];
+                    localStorage.setItem('jasg_equipment_catalog', JSON.stringify(this.equipmentCatalog));
+                    this.newEquipment = '';
+                    if (!this.formData.selectedFeatures.includes(feature)) this.toggleEquipment(feature);
                 },
 
                 async handleImageUpload(event) {
@@ -1282,9 +1346,9 @@
                 saveVehicle() {
                     const imagesList = [...this.parseImagesInput(this.formData.imagesInput), ...this.formData.uploadedImages];
 
-                    const featuresList = this.formData.featuresInput
-                        ? this.formData.featuresInput.split(',').map(s => s.trim()).filter(Boolean)
-                        : [];
+                    const featuresList = this.formData.selectedFeatures.length
+                        ? [...this.formData.selectedFeatures]
+                        : this.parseFeatures(this.formData.featuresInput);
 
                     const newObj = {
                         id: this.formData.id || Date.now(),
