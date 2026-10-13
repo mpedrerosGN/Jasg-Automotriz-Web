@@ -81,6 +81,16 @@ alter table public.vehicle_images enable row level security;
 alter table public.vehicle_equipment enable row level security;
 alter table public.site_settings enable row level security;
 
+-- Permisos de acceso a la API. RLS sigue controlando las filas permitidas.
+grant usage on schema public to anon, authenticated;
+grant select on table public.vehicle_brands, public.vehicle_models,
+  public.equipment_catalog, public.vehicles, public.vehicle_images,
+  public.vehicle_equipment to anon;
+grant select, insert, update, delete on table public.vehicle_brands,
+  public.vehicle_models, public.equipment_catalog, public.vehicles,
+  public.vehicle_images, public.vehicle_equipment, public.site_settings
+  to authenticated;
+
 drop policy if exists "Public can read active brands" on public.vehicle_brands;
 create policy "Public can read active brands" on public.vehicle_brands
   for select using (active = true);
