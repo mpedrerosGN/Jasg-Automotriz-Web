@@ -43,7 +43,22 @@
       if (result.error) return result;
       const vehicleId = result.data.id;
       await client().from('vehicle_images').delete().eq('vehicle_id', vehicleId);
-      const images = (vehicle.images || []).filter(image => !String(image).startsWith('data:image'));
+      const images = [];
+      for (const [sort_order, image] of (vehicle.images || []).entries()) {
+        if (!String(image).startsWith('data:image')) {
+          images.push(image);
+          continue;
+        }
+        const match = String(image).match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+        if (!match) continue;
+        const blob = await (await fetch(image)).blob();
+        const extension = match[1].split('/')[1].replace('jpeg', 'jpg');
+        const path = `${vehicleId}/${crypto.randomUUID()}.${extension}`;
+        const upload = await client().storage.from('vehicle-images').upload(path, blob, { contentType: match[1], upsert: false });
+        if (upload.error) return { data: null, error: upload.error };
+        const publicUrl = client().storage.from('vehicle-images').getPublicUrl(path).data.publicUrl;
+        images.push(publicUrl);
+      }
       if (images.length) await client().from('vehicle_images').insert(images.map((image_url, sort_order) => ({ vehicle_id: vehicleId, image_url, sort_order })));
       return { data: { ...vehicle, id: vehicleId, images }, error: null };
     }

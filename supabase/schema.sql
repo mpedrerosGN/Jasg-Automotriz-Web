@@ -149,3 +149,24 @@ insert into public.equipment_catalog (name, category, sort_order) values
   ('Asientos de cuero', 'Confort', 80),
   ('Tracción 4x4', 'Seguridad', 90)
 on conflict (name) do nothing;
+
+-- Almacenamiento público para las imágenes del catálogo.
+insert into storage.buckets (id, name, public)
+values ('vehicle-images', 'vehicle-images', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "Public can view vehicle images storage" on storage.objects;
+create policy "Public can view vehicle images storage" on storage.objects
+  for select using (bucket_id = 'vehicle-images');
+
+drop policy if exists "Authenticated users upload vehicle images" on storage.objects;
+create policy "Authenticated users upload vehicle images" on storage.objects
+  for insert to authenticated with check (bucket_id = 'vehicle-images');
+
+drop policy if exists "Authenticated users update vehicle images" on storage.objects;
+create policy "Authenticated users update vehicle images" on storage.objects
+  for update to authenticated using (bucket_id = 'vehicle-images') with check (bucket_id = 'vehicle-images');
+
+drop policy if exists "Authenticated users delete vehicle images" on storage.objects;
+create policy "Authenticated users delete vehicle images" on storage.objects
+  for delete to authenticated using (bucket_id = 'vehicle-images');
