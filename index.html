@@ -874,9 +874,14 @@
     </div>
 
     <!-- Fullscreen image viewer -->
-    <div x-show="zoomOpen" x-cloak x-transition class="fixed inset-0 z-[70] flex items-center justify-center bg-black/95 p-3 sm:p-8" @click.self="zoomOpen = false">
+    <div x-show="zoomOpen" x-cloak x-transition class="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden bg-black/95 p-3 sm:p-8" @click.self="closeZoom()" @wheel.prevent="handleZoomWheel($event)">
         <button type="button" @click="zoomOpen = false" class="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-2xl text-white" aria-label="Cerrar ampliación">×</button>
         <img :src="activeDetailImage || (selectedVehicle && getMainImage(selectedVehicle))" alt="Imagen ampliada del vehículo" class="max-h-[92vh] max-w-full object-contain">
+        <div class="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/15 p-2 backdrop-blur-md">
+            <button type="button" @click="zoomOut()" class="h-10 w-10 rounded-full bg-white/20 text-xl font-bold text-white">-</button>
+            <button type="button" @click="resetZoom()" class="min-w-16 rounded-full bg-white/20 px-3 py-2 text-xs font-bold text-white" x-text="`${Math.round(zoomScale * 100)}%`"></button>
+            <button type="button" @click="zoomIn()" class="h-10 w-10 rounded-full bg-white/20 text-xl font-bold text-white">+</button>
+        </div>
     </div>
 
     <!-- Footer -->
@@ -899,6 +904,7 @@
                 formModalOpen: false,
                 detailModalOpen: false,
                 zoomOpen: false,
+                zoomScale: 1,
                 isEditing: false,
                 selectedVehicle: null,
                 activeDetailImage: null,
@@ -906,6 +912,36 @@
                 cardSwipeStarts: {},
                 detailSwipeStart: null,
                 detailMagnifier: { active: false, x: 50, y: 50 },
+
+                closeZoom() {
+                    this.zoomOpen = false;
+                    this.zoomScale = 1;
+                },
+
+                zoomIn() {
+                    this.zoomScale = Math.min(3, +(this.zoomScale + 0.25).toFixed(2));
+                    this.applyZoomScale();
+                },
+
+                zoomOut() {
+                    this.zoomScale = Math.max(1, +(this.zoomScale - 0.25).toFixed(2));
+                    this.applyZoomScale();
+                },
+
+                resetZoom() {
+                    this.zoomScale = 1;
+                    this.applyZoomScale();
+                },
+
+                applyZoomScale() {
+                    const image = document.querySelector('[x-show="zoomOpen"] img');
+                    if (image) image.style.transform = `scale(${this.zoomScale})`;
+                },
+
+                handleZoomWheel(event) {
+                    if (event.deltaY < 0) this.zoomIn();
+                    else this.zoomOut();
+                },
 
                 vehicles: [],
 
