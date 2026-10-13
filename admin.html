@@ -40,6 +40,9 @@
 
     <!-- Alpine.js CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js?v=5"></script>
+    <script src="supabase-data.js?v=1"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -1018,11 +1021,16 @@
                 },
 
                 // Initialize App Data
-                initApp() {
+                async initApp() {
+                    const remote = await window.jasgDb?.listVehicles();
+                    if (remote?.data?.length) {
+                        this.vehicles = remote.data;
+                    }
                     const savedEquipment = localStorage.getItem('jasg_equipment_catalog');
                     if (savedEquipment) {
                         try { this.equipmentCatalog = [...new Set([...this.equipmentCatalog, ...JSON.parse(savedEquipment)])]; } catch (error) { console.warn('No se pudo cargar el equipamiento personalizado', error); }
                     }
+                    if (this.vehicles.length) return;
                     const saved = localStorage.getItem('jasg_automotora_clean_data');
                     if (saved) {
                         try {
@@ -1375,7 +1383,7 @@
                     });
                 },
 
-                saveVehicle() {
+                async saveVehicle() {
                     const imagesList = [...this.parseImagesInput(this.formData.imagesInput), ...this.formData.uploadedImages];
 
                     const featuresList = this.formData.selectedFeatures.length
@@ -1407,6 +1415,14 @@
                     }
 
                     this.saveToStorage();
+                    const session = await window.jasgSupabase?.auth.getSession();
+                    const remote = await window.jasgDb?.saveVehicle(newObj, session?.data?.session?.user?.id);
+                    if (remote?.error) console.warn('No se pudo sincronizar con Supabase:', remote.error.message);
+                    else if (remote?.data) {
+                        const index = this.vehicles.findIndex(v => v.id === newObj.id);
+                        if (index !== -1) this.vehicles[index] = remote.data;
+                        this.saveToStorage();
+                    }
                     this.formModalOpen = false;
                 },
 

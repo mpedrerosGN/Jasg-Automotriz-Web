@@ -40,6 +40,9 @@
 
     <!-- Alpine.js CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js?v=5"></script>
+    <script src="supabase-data.js?v=1"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -985,7 +988,13 @@
                 categories: ['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Deportivo', 'Comercial'],
 
                 // Initialize App Data
-                initApp() {
+                async initApp() {
+                    const remote = await window.jasgDb?.listVehicles();
+                    if (remote?.data?.length) {
+                        this.vehicles = remote.data;
+                        this.saveToStorage();
+                        return;
+                    }
                     const saved = localStorage.getItem('jasg_automotora_clean_data');
                     if (saved) {
                         try {
