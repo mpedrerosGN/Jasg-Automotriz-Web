@@ -565,14 +565,21 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Marca *</label>
-                            <input type="text" x-model="formData.brand" required placeholder="Ej: Toyota"
+                            <input type="text" list="vehicle-brands" x-model="formData.brand" required placeholder="Busca una marca..."
                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                            <datalist id="vehicle-brands">
+                                <template x-for="brand in brandCatalog" :key="brand"><option :value="brand"></option></template>
+                            </datalist>
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Modelo *</label>
-                            <input type="text" x-model="formData.model" required placeholder="Ej: RAV4"
+                            <input type="text" list="vehicle-models" x-model="formData.model" required placeholder="Busca un modelo..."
                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:bg-white focus:outline-none focus:border-brand-600">
+                            <datalist id="vehicle-models">
+                                <template x-for="model in (vehicleModels[formData.brand] || commonVehicleModels)" :key="model"><option :value="model"></option></template>
+                            </datalist>
+                            <p class="mt-1 text-[11px] text-slate-500">Selecciona una sugerencia o escribe un modelo nuevo.</p>
                         </div>
 
                         <div>
@@ -940,6 +947,31 @@
                 },
 
                 categories: ['SUV', 'Sedán', 'Hatchback', 'Camioneta', 'Deportivo', 'Comercial'],
+                brandCatalog: ['ACURA', 'AUDI', 'BMW', 'BYD', 'CHEVROLET', 'CHERY', 'CITROËN', 'DODGE', 'FIAT', 'FORD', 'FOTON', 'GEELY', 'GREAT WALL', 'HAVAL', 'HONDA', 'HYUNDAI', 'JAC', 'JEEP', 'KIA', 'LAND ROVER', 'LEXUS', 'MAHINDRA', 'MAXUS', 'MAZDA', 'MERCEDES-BENZ', 'MG', 'MITSUBISHI', 'NISSAN', 'OPEL', 'PEUGEOT', 'RAM', 'RENAULT', 'SEAT', 'SKODA', 'SUBARU', 'SUZUKI', 'TESLA', 'TOYOTA', 'VOLKSWAGEN', 'VOLVO'],
+                commonVehicleModels: ['Sedán', 'SUV', 'Hatchback', 'Pickup', 'Van', 'Furgón', 'Camión', 'Otro'],
+                vehicleModels: {
+                    'TOYOTA': ['Yaris', 'Corolla', 'Camry', 'RAV4', 'Hilux', 'Land Cruiser', 'Fortuner', 'Prado'],
+                    'FORD': ['Fiesta', 'Focus', 'Mustang', 'Ranger', 'F-150', 'Explorer', 'Escape', 'Bronco', 'Transit'],
+                    'CHEVROLET': ['Spark', 'Sail', 'Onix', 'Cruze', 'Tracker', 'Captiva', 'Trailblazer', 'Silverado', 'Colorado'],
+                    'HYUNDAI': ['Accent', 'Elantra', 'i10', 'i20', 'Tucson', 'Santa Fe', 'Creta', 'Kona', 'H-1', 'Porter'],
+                    'KIA': ['Morning', 'Rio', 'Cerato', 'K3', 'Sportage', 'Sorento', 'Seltos', 'Carnival', 'Frontier'],
+                    'NISSAN': ['March', 'Versa', 'Sentra', 'Kicks', 'Qashqai', 'X-Trail', 'Pathfinder', 'Navara', 'NP300'],
+                    'SUZUKI': ['Alto', 'Celerio', 'Swift', 'Baleno', 'Dzire', 'Vitara', 'S-Cross', 'Jimny', 'Ertiga'],
+                    'PEUGEOT': ['208', '308', '2008', '3008', '5008', 'Partner', 'Expert', 'Boxer', 'Landtrek'],
+                    'RENAULT': ['Kwid', 'Clio', 'Logan', 'Sandero', 'Duster', 'Captur', 'Koleos', 'Oroch', 'Kangoo'],
+                    'VOLKSWAGEN': ['Gol', 'Polo', 'Virtus', 'Golf', 'Jetta', 'T-Cross', 'T-Roc', 'Taos', 'Tiguan', 'Amarok'],
+                    'BMW': ['Serie 1', 'Serie 2', 'Serie 3', 'Serie 4', 'Serie 5', 'X1', 'X3', 'X5', 'X6', 'X7', 'M3', 'M4'],
+                    'MERCEDES-BENZ': ['Clase A', 'Clase C', 'Clase E', 'GLA', 'GLC', 'GLE', 'GLS', 'Sprinter', 'Vito'],
+                    'AUDI': ['A1', 'A3', 'A4', 'A5', 'A6', 'Q2', 'Q3', 'Q5', 'Q7', 'Q8', 'e-tron'],
+                    'HONDA': ['City', 'Civic', 'Accord', 'HR-V', 'CR-V', 'Pilot', 'Ridgeline'],
+                    'MAZDA': ['Mazda 2', 'Mazda 3', 'Mazda 6', 'CX-3', 'CX-5', 'CX-30', 'CX-9', 'BT-50'],
+                    'MITSUBISHI': ['Mirage', 'Lancer', 'ASX', 'Eclipse Cross', 'Outlander', 'Montero', 'L200'],
+                    'JEEP': ['Renegade', 'Compass', 'Cherokee', 'Grand Cherokee', 'Wrangler', 'Gladiator'],
+                    'MG': ['3', '5', 'ZS', 'ZS EV', 'HS', 'RX5', 'Marvel R'],
+                    'MAXUS': ['T60', 'T90', 'D60', 'D90', 'Deliver 9', 'V80'],
+                    'JAC': ['JS2', 'JS3', 'JS4', 'JS8', 'T6', 'T8', 'X200'],
+                    'VOLVO': ['S60', 'S90', 'XC40', 'XC60', 'XC90', 'FM', 'FH']
+                },
 
                 // Initialize App Data
                 initApp() {
