@@ -59,25 +59,29 @@ function database(fail = '') {
         }
     };
     const context = { window: { jasgSupabase: client } };
-    vm.runInNewContext(read('supabase-data.js'), context);
+    vm.runInNewContext(read('supabase-data.js'), context, { filename: 'supabase-data.js' });
     return { db: context.window.jasgDb, tables };
 }
 
 function gallery(page = 'admin.html') {
+    let timer = null;
+    const watches = {};
     const context = {
         window: { matchMedia: () => ({ matches: true }) },
         document: { hidden: false, activeElement: null, querySelector: () => null },
-        setInterval: () => 1, clearInterval() {}, console, Date
+        setInterval(callback) { timer = callback; return 1; }, clearInterval() { timer = null; }, console, Date
     };
     vm.createContext(context);
-    vm.runInContext(read('vehicle-gallery.js'), context);
+    vm.runInContext(read('vehicle-gallery.js'), context, { filename: 'vehicle-gallery.js' });
     for (const script of read(page).matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
         if (script[1].includes('function automotoraApp')) vm.runInContext(script[1], context);
     }
     const app = context.automotoraApp();
     app.$refs = {};
     app.$nextTick = fn => fn();
-    app.$watch = () => {};
+    app.$watch = (key, callback) => { watches[key] = callback; };
+    app.tickSlideshow = () => timer?.();
+    app.notifyDetailClosed = () => watches.detailModalOpen(false);
     app.selectedVehicle = { id: 'gallery-car', images: ['first.jpg', 'second.jpg', 'third.jpg'] };
     app.activeDetailImage = 'first.jpg';
     app.detailModalOpen = true;
@@ -128,6 +132,21 @@ test('equipment persistence failures are reported instead of claiming success', 
     assert.ok((await db.saveVehicle(vehicle, 'user')).error);
 });
 
+for (const failure of ['equipment_catalog:upsert', 'equipment_catalog:select', 'vehicle_equipment:select', 'vehicles:upsert', 'vehicle_images:delete', 'vehicle_images:insert']) {
+    test(`database failure is surfaced: ${failure}`, async () => {
+        const { db } = database(failure);
+        assert.ok((await db.saveVehicle(vehicle, 'user')).error);
+    });
+}
+
+test('failed equipment removal preserves existing links', async () => {
+    const { db, tables } = database('vehicle_equipment:delete');
+    await db.saveVehicle(vehicle, 'user');
+    const result = await db.saveVehicle({ ...vehicle, features: [] }, 'user');
+    assert.ok(result.error);
+    assert.equal(tables.vehicle_equipment.length, 2);
+});
+
 for (const page of ['index.html', 'admin.html']) {
     test(`${page}: catalog does not activate a magnifier`, () => {
         const cards = read(page).split('<!-- Vehicles Cards Grid -->')[1].split('<!--')[0];
@@ -142,6 +161,7 @@ for (const page of ['index.html', 'admin.html']) {
         app.zoomIn();
         app.changeZoomImage(-1);
         assert.equal(app.activeDetailImage, 'third.jpg');
+        assert.equal(app.zoomPhotoNumber(), 3);
         assert.equal(app.zoomScale, 1);
         app.changeZoomImage(1);
         assert.equal(app.activeDetailImage, 'first.jpg');
@@ -172,9 +192,81 @@ for (const page of ['index.html', 'admin.html']) {
         app.openZoom();
         app.changeZoomImage(1);
         assert.equal(app.activeDetailImage, 'first.jpg');
-        assert.equal(app.zoomPhotoCount, 1);
+        assert.equal(app.zoomPhotoCount(), 1);
+    });
+    test(`${page}: zoom is bounded, reset on closing and restores focus`, () => {
+        const app = gallery(page);
+        let focused = false;
+        app.openZoom();
+        app.zoomReturnFocus = { focus() { focused = true; } };
+        for (let i = 0; i < 20; i++) app.handleZoomWheel({ deltaY: -1 });
+        assert.equal(app.zoomScale, 3);
+        for (let i = 0; i < 20; i++) app.handleZoomWheel({ deltaY: 1 });
+        assert.equal(app.zoomScale, 1);
+        app.zoomIn();
+        app.closeZoom();
+        assert.equal(app.zoomScale, 1);
+        assert.equal(focused, true);
+        app.handleZoomKeydown({ key: 'ArrowRight', preventDefault() {} });
+        assert.equal(app.activeDetailImage, 'first.jpg');
+    });
+    test(`${page}: detail swipe does not accidentally open fullscreen`, () => {
+        const app = gallery(page);
+        app.beginGallerySwipe({ changedTouches: [{ clientX: 240, clientY: 100 }] });
+        app.finishGallerySwipe({ changedTouches: [{ clientX: 80, clientY: 105 }] });
+        assert.equal(app.activeDetailImage, 'second.jpg');
+        app.openZoom();
+        assert.equal(app.zoomOpen, false);
+    });
+    test(`${page}: magnifier follows the contained photo and hides in its margins`, () => {
+        const app = gallery(page);
+        app.activateDetailMagnifier();
+        const image = { naturalWidth: 200, naturalHeight: 400, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 400 }) };
+        app.moveDetailMagnifier({ currentTarget: image, clientX: 400, clientY: 200 });
+        assert.equal(app.detailMagnifier.active, true);
+        assert.equal(app.detailMagnifierStyle().backgroundSize, '500px 1000px');
+        app.moveDetailMagnifier({ currentTarget: image, clientX: 100, clientY: 200 });
+        assert.equal(app.detailMagnifier.active, false);
+        app.deactivateDetailMagnifier();
+    });
+    test(`${page}: slideshow pauses in fullscreen and closing detail stops it`, () => {
+        const app = gallery(page);
+        app.initGallery();
+        app.toggleDetailSlideshow();
+        app.tickSlideshow();
+        assert.equal(app.activeDetailImage, 'second.jpg');
+        app.openZoom();
+        app.tickSlideshow();
+        assert.equal(app.activeDetailImage, 'second.jpg');
+        app.closeZoom();
+        app.tickSlideshow();
+        assert.equal(app.activeDetailImage, 'third.jpg');
+        app.notifyDetailClosed();
+        assert.equal(app.detailSlideshowPlaying, false);
+        app.destroy();
     });
 }
+
+test('admin first submission includes selected and typed equipment and retains it after reload', async () => {
+    const { db } = database();
+    const context = {
+        window: { jasgDb: db, jasgSupabase: { auth: { getSession: async () => ({ data: { session: { user: { id: 'user' } } } }) } } },
+        crypto: { randomUUID: () => 'new-admin-uuid' }, localStorage: { setItem() {} },
+        alert(message) { throw new Error(message); }, console, Date, setInterval, clearInterval
+    };
+    vm.createContext(context);
+    vm.runInContext(read('vehicle-gallery.js'), context);
+    const source = [...read('admin.html').matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].find(match => match[1].includes('function automotoraApp'))[1];
+    vm.runInContext(source, context);
+    const app = context.automotoraApp();
+    app.openCreateForm();
+    Object.assign(app.formData, vehicle, { id: 123, uploadedImages: vehicle.images, selectedFeatures: ['Sunroof'] });
+    app.newEquipment = 'Cámara personalizada';
+    await app.saveVehicle();
+    assert.equal(app.formModalOpen, false);
+    assert.equal(app.vehicles.length, 1);
+    assert.deepEqual(plain((await db.listVehicles()).data[0].features).sort(), ['Cámara personalizada', 'Sunroof']);
+});
 
 module.exports = async function run() {
     const results = [];

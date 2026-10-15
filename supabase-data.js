@@ -1,6 +1,40 @@
 (function () {
   const client = () => window.jasgSupabase;
 
+  async function saveEquipment(vehicleId, features) {
+    let equipment = [];
+    if (features.length) {
+      const catalog = await client().from('equipment_catalog')
+        .upsert(features.map(name => ({ name })), { onConflict: 'name', ignoreDuplicates: true });
+      if (catalog.error) return catalog;
+      const selected = await client().from('equipment_catalog').select('id, name').in('name', features);
+      if (selected.error) return selected;
+      equipment = selected.data;
+      if (equipment.length !== features.length) {
+        return { error: new Error('No se pudo verificar todo el equipamiento seleccionado.') };
+      }
+    }
+
+    const existing = await client().from('vehicle_equipment').select('equipment_id').eq('vehicle_id', vehicleId);
+    if (existing.error) return existing;
+    // Primero guardar las nuevas relaciones; conservar las anteriores si falla.
+    if (equipment.length) {
+      const linked = await client().from('vehicle_equipment').upsert(
+        equipment.map(item => ({ vehicle_id: vehicleId, equipment_id: item.id })),
+        { onConflict: 'vehicle_id,equipment_id', ignoreDuplicates: true }
+      );
+      if (linked.error) return linked;
+    }
+    const selectedIds = new Set(equipment.map(item => item.id));
+    const removedIds = existing.data.map(item => item.equipment_id).filter(id => !selectedIds.has(id));
+    if (removedIds.length) {
+      const removed = await client().from('vehicle_equipment').delete()
+        .eq('vehicle_id', vehicleId).in('equipment_id', removedIds);
+      if (removed.error) return removed;
+    }
+    return { error: null };
+  }
+
   function fromRow(row) {
     return {
       id: row.id,
@@ -31,6 +65,8 @@
 
     async saveVehicle(vehicle, userId) {
       if (!client()) return { data: null, error: new Error('Supabase no disponible') };
+      const features = [...new Set((Array.isArray(vehicle.features) ? vehicle.features : [])
+        .filter(feature => typeof feature === 'string').map(feature => feature.trim()).filter(Boolean))];
       const payload = {
         ...(typeof vehicle.id === 'string' && vehicle.id.includes('-') ? { id: vehicle.id } : {}),
         brand: vehicle.brand, model: vehicle.model, year: Number(vehicle.year),
@@ -65,7 +101,9 @@
         const inserted = await client().from('vehicle_images').insert(images.map((image_url, sort_order) => ({ vehicle_id: vehicleId, image_url, sort_order })));
         if (inserted.error) return { data: null, error: inserted.error };
       }
-      return { data: { ...vehicle, id: vehicleId, images }, error: null };
+      const equipment = await saveEquipment(vehicleId, features);
+      if (equipment.error) return { data: null, error: equipment.error };
+      return { data: { ...vehicle, id: vehicleId, images, features }, error: null };
     }
   };
 })();

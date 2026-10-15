@@ -7,10 +7,121 @@
             detailSwipeOrigin: null,
             imageUploadBusy: false,
             vehicleSaving: false,
+            zoomScale: 1,
+            zoomSwipeOrigin: null,
+            zoomReturnFocus: null,
+            suppressZoomUntil: 0,
+            detailMagnifier: { active: false, x: 0, y: 0, width: 0, height: 0 },
+
+            zoomPhotoCount() {
+                return this.selectedVehicle ? this.getVehicleImages(this.selectedVehicle).length : 0;
+            },
+
+            zoomPhotoNumber() {
+                return this.selectedVehicle ? Math.max(0, this.getVehicleImages(this.selectedVehicle).indexOf(this.activeDetailImage)) + 1 : 0;
+            },
+
+            openZoom() {
+                if (!this.selectedVehicle || Date.now() < this.suppressZoomUntil) return;
+                this.zoomReturnFocus = document.activeElement;
+                this.deactivateDetailMagnifier();
+                this.resetZoom();
+                this.zoomOpen = true;
+                this.$nextTick(() => this.$refs.zoomClose?.focus());
+            },
+
+            closeZoom() {
+                this.zoomOpen = false;
+                this.zoomSwipeOrigin = null;
+                this.resetZoom();
+                this.zoomReturnFocus?.focus?.();
+                this.zoomReturnFocus = null;
+            },
+
+            zoomIn() { this.zoomScale = Math.min(3, this.zoomScale + 0.25); },
+            zoomOut() { this.zoomScale = Math.max(1, this.zoomScale - 0.25); },
+            resetZoom() { this.zoomScale = 1; },
+            handleZoomWheel(event) {
+                if (event.deltaY < 0) this.zoomIn();
+                else if (event.deltaY > 0) this.zoomOut();
+            },
+
+            changeZoomImage(direction) {
+                this.resetZoom();
+                this.changeDetailImage(direction, true);
+            },
+
+            handleZoomKeydown(event) {
+                if (!this.zoomOpen) return;
+                if (['ArrowLeft', 'ArrowRight', 'Escape'].includes(event.key)) {
+                    event.preventDefault();
+                    if (event.key === 'Escape') this.closeZoom();
+                    else this.changeZoomImage(event.key === 'ArrowLeft' ? -1 : 1);
+                } else if (event.key === 'Tab') {
+                    const buttons = [...this.$refs.zoomViewer.querySelectorAll('button')]
+                        .filter(button => button.getClientRects().length && !button.disabled);
+                    const first = buttons[0], last = buttons[buttons.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last?.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first?.focus();
+                    }
+                }
+            },
+
+            beginZoomSwipe(event) {
+                this.zoomSwipeOrigin = event.touches.length === 1
+                    ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
+            },
+
+            finishZoomSwipe(event) {
+                const origin = this.zoomSwipeOrigin;
+                this.zoomSwipeOrigin = null;
+                if (!origin || !event.changedTouches.length) return;
+                const dx = event.changedTouches[0].clientX - origin.x;
+                const dy = event.changedTouches[0].clientY - origin.y;
+                if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy)) this.changeZoomImage(dx < 0 ? 1 : -1);
+            },
+
+            activateDetailMagnifier() {
+                this.detailMagnifier.active = false;
+            },
+
+            moveDetailMagnifier(event) {
+                if (!this.detailModalOpen || this.zoomOpen || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+                const image = event.currentTarget;
+                if (!image.naturalWidth || !image.naturalHeight) return;
+                const rect = image.getBoundingClientRect();
+                const scale = Math.min(rect.width / image.naturalWidth, rect.height / image.naturalHeight);
+                const width = image.naturalWidth * scale, height = image.naturalHeight * scale;
+                const left = (rect.width - width) / 2, top = (rect.height - height) / 2;
+                const x = event.clientX - rect.left, y = event.clientY - rect.top;
+                this.detailMagnifier = { active: x >= left && x <= left + width && y >= top && y <= top + height,
+                    x, y, left, top, width, height };
+            },
+
+            deactivateDetailMagnifier() { this.detailMagnifier.active = false; },
+
+            detailMagnifierStyle() {
+                const glass = this.detailMagnifier;
+                const image = this.activeDetailImage || (this.selectedVehicle && this.getMainImage(this.selectedVehicle));
+                return {
+                    left: `${glass.x - 66}px`, top: `${glass.y - 66}px`,
+                    backgroundImage: `url(${JSON.stringify(image)})`,
+                    backgroundSize: `${glass.width * 2.5}px ${glass.height * 2.5}px`,
+                    backgroundPosition: `${66 - (glass.x - glass.left) * 2.5}px ${66 - (glass.y - glass.top) * 2.5}px`
+                };
+            },
 
             initGallery() {
                 this.$watch('detailModalOpen', open => {
-                    if (!open) this.stopDetailSlideshow();
+                    if (!open) {
+                        this.stopDetailSlideshow();
+                        this.deactivateDetailMagnifier();
+                        if (this.zoomOpen) this.closeZoom();
+                    }
                 });
             },
 
@@ -61,6 +172,7 @@
             },
 
             selectDetailImage(image, manual = true) {
+                this.deactivateDetailMagnifier();
                 this.activeDetailImage = image;
                 if (manual && this.detailSlideshowPlaying) this.startDetailSlideshow();
                 this.$nextTick(() => {
@@ -75,6 +187,7 @@
             },
 
             changeDetailImage(direction, manual = false) {
+                if (!this.selectedVehicle) return;
                 const images = this.getVehicleImages(this.selectedVehicle);
                 if (!images.length) return;
                 const index = Math.max(0, images.indexOf(this.activeDetailImage));
@@ -94,6 +207,7 @@
                 const dx = touch.clientX - origin.x;
                 const dy = touch.clientY - origin.y;
                 if (Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy)) {
+                    this.suppressZoomUntil = Date.now() + 400;
                     this.changeDetailImage(dx < 0 ? 1 : -1, true);
                 }
             }
