@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="JASG Automotriz: redes sociales, catálogo, WhatsApp y dirección. Desabolladura y pintura, compra y venta de vehículos y mecánica en general.">
+    <link rel="canonical" href="https://jasg-automotriz-web.netlify.app/enlaces/">
+    <title>JASG Automotriz | Enlaces oficiales</title>
+    <style>
+        :root { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; color: #202020; background: #fff; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 28px 16px; }
+        main { width: min(100%, 430px); text-align: center; }
+        .logo { width: 180px; height: 180px; object-fit: contain; border-radius: 50%; border: 2px solid #c59a42; background: #fff; box-shadow: 0 8px 24px #8d71341c; }
+        h1 { font-size: 25px; letter-spacing: .09em; margin: 18px 0 2px; font-weight: 800; }
+        .sub { font-size: 12px; letter-spacing: .35em; margin: 0; color: #666; }
+        .line { height: 2px; width: 48px; background: #c49a45; margin: 24px auto; }
+        .intro { color: #555; line-height: 1.55; font-size: 14px; margin: 0 0 24px; }
+        .links { display: grid; gap: 13px; }
+        .link { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; background: #fff; border: 1px solid #e5dfd4; border-radius: 14px; text-decoration: none; color: #222; box-shadow: 0 3px 10px #00000008; font-weight: 650; transition: transform .2s, border-color .2s; }
+        .link:hover { transform: translateY(-2px); border-color: #a77f32; }
+        a:focus-visible { outline: 3px solid #9b742d; outline-offset: 4px; }
+        .left { display: flex; align-items: center; gap: 14px; }
+        .ico { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: #f6f0e4; color: #876321; font-weight: 800; font-size: 17px; }
+        .arrow { color: #876321; font-size: 21px; }
+        .details { margin-top: 27px; color: #555; font-size: 13px; line-height: 1.9; }
+        .details a { display: inline-flex; align-items: center; min-height: 44px; color: #454545; text-decoration: none; }
+        .details a:hover { text-decoration: underline; }
+        footer { font-size: 11px; color: #666; margin-top: 26px; }
+        @media (prefers-reduced-motion: reduce) { .link { transition: none; } .link:hover { transform: none; } }
+    </style>
+</head>
+<body>
+    <main>
+        <img id="site-logo" class="logo" src="logo-jasg.jpg" width="180" height="180" alt="Logo JASG Automotriz">
+        <h1>JASG</h1>
+        <p class="sub">AUTOMOTRIZ</p>
+        <div class="line" aria-hidden="true"></div>
+        <p class="intro">Desabolladura y pintura · Compra y venta de vehículos · Mecánica en general</p>
+        <nav class="links" aria-label="Enlaces oficiales">
+            <a class="link" href="https://www.instagram.com/jasg.automotriz" target="_blank" rel="noopener noreferrer"><span class="left"><span class="ico" aria-hidden="true">◎</span>Instagram</span><span class="arrow" aria-hidden="true">↗</span></a>
+            <a class="link" href="https://www.facebook.com/profile.php?id=61594706829702" target="_blank" rel="noopener noreferrer"><span class="left"><span class="ico" aria-hidden="true">f</span>Facebook</span><span class="arrow" aria-hidden="true">↗</span></a>
+            <a class="link" href="https://jasg-automotriz-web.netlify.app/"><span class="left"><span class="ico" aria-hidden="true">⌂</span>Página web</span><span class="arrow" aria-hidden="true">↗</span></a>
+            <a class="link" href="https://wa.me/56975694441" target="_blank" rel="noopener noreferrer"><span class="left"><span class="ico" aria-hidden="true">☎</span>WhatsApp</span><span class="arrow" aria-hidden="true">↗</span></a>
+        </nav>
+        <div class="details">
+            <div>📍 Los Álamos 2330 - Palomares</div>
+            <div><a href="tel:+56975694441">☎ +56 9 7569 4441</a></div>
+        </div>
+        <footer>JASG Automotriz · Enlaces oficiales</footer>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/supabase-client.js?v=5"></script>
+    <script src="/site-branding.js?v=1"></script>
+    <script>
+        // Usar el logo del mantenedor cuando exista; conservar el adjunto como alternativa.
+        const logo = document.getElementById('site-logo');
+        logo.onerror = () => { logo.onerror = null; logo.src = 'logo-jasg.jpg'; };
+        if (window.jasgLogoStore) {
+            window.jasgLogoStore.load().then(url => {
+                if (url.startsWith('https://')) logo.src = url;
+            }).catch(() => {});
+        }
+    </script>
+</body>
+</html>
