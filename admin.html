@@ -43,7 +43,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js?v=5"></script>
     <script src="supabase-data.js?v=3"></script>
-    <script src="vehicle-gallery.js?v=2"></script>
+    <script src="vehicle-gallery.js?v=3"></script>
     <script src="auth.js?v=2"></script>
 
     <style>
@@ -51,7 +51,7 @@
         .aspect-video-custom { aspect-ratio: 16 / 9; }
         .gold-focus:focus { border-color: #d79b19; box-shadow: 0 0 0 3px rgba(215,155,25,.18); }
         .brand-wordmark { letter-spacing: .22em; }
-        .magnifier-glass { position: absolute; width: 132px; height: 132px; border-radius: 9999px; border: 3px solid white; box-shadow: 0 8px 24px rgba(0,0,0,.35); pointer-events: none; background-repeat: no-repeat; z-index: 12; }
+        .magnifier-glass { position: absolute; border-radius: 9999px; border: 3px solid white; box-shadow: 0 8px 24px rgba(0,0,0,.35); pointer-events: none; background-repeat: no-repeat; z-index: 12; }
     </style>
 </head>
 <body class="h-full flex flex-col font-sans text-slate-800 bg-slate-50 antialiased"
@@ -767,13 +767,12 @@
     </div>
 
     <!-- MODAL: DETALLE DEL VEHICULO -->
-    <div x-show="detailModalOpen" 
+    <div x-show="detailModalOpen" @click.self="detailModalOpen = false"
          class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
          x-transition
          x-cloak>
 
-        <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl relative border border-slate-200 my-8"
-             @click.away="detailModalOpen = false">
+        <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl relative border border-slate-200 my-8">
             
             <template x-if="selectedVehicle">
                 <div>

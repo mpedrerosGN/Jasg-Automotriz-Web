@@ -39,3 +39,22 @@ No hubo navegador Chrome o integrado disponible para E2E visuales. La navegació
 táctil se probó con eventos simulados; queda pendiente la comprobación visual en
 un teléfono y navegador reales, así como una creación autenticada contra Supabase.
 El equipamiento que nunca se guardó anteriormente no se recupera automáticamente.
+
+## Corrección del cierre accidental del visor
+
+El usuario detectó que los botones del visor cerraban también el detalle. Causa:
+el `@click.away` del detalle escuchaba los clics del visor, que es un elemento
+hermano. El watcher del detalle cerrado también cerraba el zoom. Las pruebas
+anteriores de métodos no ejercitaban esta interacción entre eventos del HTML.
+
+Se reemplazó ese cierre global por `@click.self` en el fondo del detalle, en ambas
+páginas. La lupa ahora mide 200 px de diámetro (antes 132 px), y su radio y tamaño
+se calculan juntos para conservar el centro sobre el cursor.
+
+- RED: 4 pruebas nuevas fallaron, reproduciendo el cierre y el tamaño anterior.
+  Checkpoint: `3e5c041`.
+- GREEN: 35/35 pruebas pasan. Las nuevas pruebas ejecutan las expresiones de
+  cierre declaradas en el HTML, simulando clics en controles del visor, cierre
+  del visor, contenido del detalle y fondo del detalle; también verifican la
+  geometría de la lupa.
+- Son pruebas simuladas, no E2E en navegador real.

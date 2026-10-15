@@ -106,12 +106,15 @@
 
             detailMagnifierStyle() {
                 const glass = this.detailMagnifier;
+                const diameter = 200;
+                const radius = diameter / 2;
                 const image = this.activeDetailImage || (this.selectedVehicle && this.getMainImage(this.selectedVehicle));
                 return {
-                    left: `${glass.x - 66}px`, top: `${glass.y - 66}px`,
+                    width: `${diameter}px`, height: `${diameter}px`,
+                    left: `${glass.x - radius}px`, top: `${glass.y - radius}px`,
                     backgroundImage: `url(${JSON.stringify(image)})`,
                     backgroundSize: `${glass.width * 2.5}px ${glass.height * 2.5}px`,
-                    backgroundPosition: `${66 - (glass.x - glass.left) * 2.5}px ${66 - (glass.y - glass.top) * 2.5}px`
+                    backgroundPosition: `${radius - (glass.x - glass.left) * 2.5}px ${radius - (glass.y - glass.top) * 2.5}px`
                 };
             },
 
