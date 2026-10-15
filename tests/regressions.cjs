@@ -7,6 +7,23 @@ const root = path.resolve(__dirname, '..');
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 const plain = value => JSON.parse(JSON.stringify(value));
 
+// Exercise the closing expressions declared by the actual HTML. A fullscreen
+// viewer is a sibling of the detail modal, so its clicks reach document-level
+// .away listeners but never bubble through the detail backdrop.
+function dispatchModalClick(page, app, target) {
+    const markup = read(page).split('<!-- MODAL: DETALLE DEL VEHICULO -->')[1]
+        .split('<!-- Fullscreen image viewer -->')[0];
+    const backdrop = markup.match(/<div\s+x-show="detailModalOpen"[^>]*>/)[0];
+    for (const handler of markup.matchAll(/@click\.(?:away|outside)="([^"]+)"/g)) {
+        if (target !== 'detail-content') vm.runInNewContext(handler[1], app);
+    }
+    if (target === 'detail-backdrop') {
+        const handler = backdrop.match(/@click\.self="([^"]+)"/);
+        if (handler) vm.runInNewContext(handler[1], app);
+    }
+    if (!app.detailModalOpen) app.notifyDetailClosed();
+}
+
 function database(fail = '') {
     const tables = { vehicles: [], vehicle_images: [], equipment_catalog: [], vehicle_equipment: [] };
     let sequence = 0;
@@ -148,6 +165,40 @@ test('failed equipment removal preserves existing links', async () => {
 });
 
 for (const page of ['index.html', 'admin.html']) {
+    test(`${page}: fullscreen plus and navigation clicks keep both dialogs open`, () => {
+        const app = gallery(page);
+        app.initGallery();
+        app.openZoom();
+        app.zoomIn();
+        dispatchModalClick(page, app, 'zoom-control');
+        assert.equal(app.detailModalOpen, true);
+        assert.equal(app.zoomOpen, true);
+        assert.equal(app.zoomScale, 1.25);
+        app.changeZoomImage(1);
+        dispatchModalClick(page, app, 'zoom-control');
+        assert.equal(app.detailModalOpen, true);
+        assert.equal(app.zoomOpen, true);
+        assert.equal(app.activeDetailImage, 'second.jpg');
+        app.closeZoom();
+        dispatchModalClick(page, app, 'zoom-close');
+        assert.equal(app.detailModalOpen, true);
+        assert.equal(app.zoomOpen, false);
+        dispatchModalClick(page, app, 'detail-content');
+        assert.equal(app.detailModalOpen, true);
+        dispatchModalClick(page, app, 'detail-backdrop');
+        assert.equal(app.detailModalOpen, false);
+    });
+    test(`${page}: larger magnifier keeps its center over the cursor`, () => {
+        const app = gallery(page);
+        const image = { naturalWidth: 200, naturalHeight: 400, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 400 }) };
+        app.moveDetailMagnifier({ currentTarget: image, clientX: 400, clientY: 200 });
+        const style = app.detailMagnifierStyle();
+        assert.equal(style.width, '200px');
+        assert.equal(style.height, '200px');
+        assert.equal(style.left, '300px');
+        assert.equal(style.top, '100px');
+        assert.equal(style.backgroundPosition, '-150px -400px');
+    });
     test(`${page}: catalog does not activate a magnifier`, () => {
         const cards = read(page).split('<!-- Vehicles Cards Grid -->')[1].split('<!--')[0];
         // Check the entire card image block up to the sold overlay.
