@@ -90,6 +90,7 @@ function gallery(page = 'admin.html') {
     };
     vm.createContext(context);
     vm.runInContext(read('vehicle-gallery.js'), context, { filename: 'vehicle-gallery.js' });
+    vm.runInContext(read('site-branding.js'), context, { filename: 'site-branding.js' });
     for (const script of read(page).matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
         if (script[1].includes('function automotoraApp')) vm.runInContext(script[1], context);
     }
@@ -307,6 +308,7 @@ test('admin first submission includes selected and typed equipment and retains i
     };
     vm.createContext(context);
     vm.runInContext(read('vehicle-gallery.js'), context);
+    vm.runInContext(read('site-branding.js'), context);
     const source = [...read('admin.html').matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].find(match => match[1].includes('function automotoraApp'))[1];
     vm.runInContext(source, context);
     const app = context.automotoraApp();

@@ -44,6 +44,7 @@
     <script src="supabase-client.js?v=5"></script>
     <script src="supabase-data.js?v=3"></script>
     <script src="vehicle-gallery.js?v=3"></script>
+    <script src="site-branding.js?v=1"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -64,7 +65,7 @@
                 
                 <!-- Logo & Brand Name -->
                 <div class="flex items-center gap-3 cursor-pointer" @click="currentView = 'catalog'">
-                    <img src="assets/jasg-logo.jpeg" alt="JASG Automotriz" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl shadow-md border border-brand-100">
+                    <img src="assets/jasg-logo.jpeg" :src="siteLogoUrl" @error="useLogoFallback()" alt="Logo de la automotora" class="w-20 h-20 sm:w-24 sm:h-24 object-contain bg-white rounded-2xl shadow-md border border-brand-100">
                     <div><span class="text-xl font-black text-slate-900 brand-wordmark">JASG</span><p class="text-[10px] text-brand-700 font-bold uppercase tracking-[.25em] -mt-1">Automotriz</p></div>
                 </div>
 
@@ -255,7 +256,7 @@
                                 <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-black/75 via-black/55 to-brand-900/75">
                                     <div class="flex flex-col items-center gap-2 text-center text-white">
                                         <div class="flex h-16 w-16 items-center justify-center rounded-full border-2 border-brand-400 bg-black/70 p-2 shadow-lg shadow-brand-500/30">
-                                            <img src="assets/jasg-logo.jpeg" alt="JASG" class="h-full w-full rounded-full object-cover">
+                                            <img src="assets/jasg-logo.jpeg" :src="siteLogoUrl" @error="useLogoFallback()" alt="Logo de la automotora" class="h-full w-full rounded-full bg-white object-contain">
                                         </div>
                                         <span class="border-y-2 border-brand-400 px-5 py-2 text-xl font-black tracking-[.2em] text-brand-100 drop-shadow-lg sm:text-2xl">VENDIDO</span>
                                         <span class="text-[10px] font-bold uppercase tracking-[.25em] text-brand-200">JASG Automotriz</span>
@@ -917,6 +918,7 @@
         function automotoraApp() {
             return {
                 ...window.jasgGallery(),
+                ...window.jasgBranding(),
                 currentView: 'catalog',
                 publicOnly: true,
                 mobileMenuOpen: false,
@@ -968,6 +970,7 @@
                 // Initialize App Data
                 async initApp() {
                     this.initGallery();
+                    void this.initBranding();
                     const remote = await window.jasgDb?.listVehicles();
                     if (remote?.data?.length) {
                         this.vehicles = remote.data;

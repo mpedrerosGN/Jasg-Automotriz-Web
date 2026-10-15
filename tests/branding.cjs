@@ -66,11 +66,13 @@ test('uses original logo when no shared logo has been saved', async () => {
 test('authenticated upload persists and a later public read returns the shared logo', async () => {
     const { store, state } = setup();
     const saved = await store.save(png());
+    const visitor = setup({ anonymous: true, stored: state.stored });
+    await visitor.store.load();
     const loaded = await store.load();
     assert.match(saved, /\/branding\/site-logo\.png\?v=/);
     assert.match(loaded, /\/branding\/site-logo\.png\?v=/);
     assert.notEqual(saved, loaded);
-    assert.deepEqual(state.uploads[0].config, { contentType: 'image/png', cacheControl: '0', upsert: true });
+    assert.deepEqual(JSON.parse(JSON.stringify(state.uploads[0].config)), { contentType: 'image/png', cacheControl: '0', upsert: true });
 });
 test('anonymous users cannot upload logos', async () => {
     const { store, state } = setup({ anonymous: true });
@@ -83,6 +85,13 @@ test('normalizes an uploaded logo to PNG with preserved proportions', async () =
     assert.equal(result.type, 'image/png');
     assert.deepEqual(state.draw, [1024, 512]);
     assert.equal(state.revoked.length, 1);
+});
+test('accepts JPEG and WebP and preserves small image dimensions', async () => {
+    const { store, state } = setup({ width: 100, height: 50 });
+    await store.prepare(new Blob([new Uint8Array([255, 216, 255, 0])], { type: 'image/jpeg' }));
+    assert.deepEqual(state.draw, [100, 50]);
+    const webp = new Uint8Array([82, 73, 70, 70, 0, 0, 0, 0, 87, 69, 66, 80]);
+    assert.equal((await store.prepare(new Blob([webp], { type: 'image/webp' }))).type, 'image/png');
 });
 test('rejects SVG, oversized files and misleading image extensions', async () => {
     const { store } = setup();
@@ -153,6 +162,39 @@ test('saving without a draft does not upload anything', async () => {
     const app = component();
     await app.saveLogo();
     assert.equal(state.uploads.length, 0);
+});
+test('busy state prevents duplicate saves and accidental cancellation', async () => {
+    const { component, state } = setup();
+    const app = component();
+    await app.selectLogoFile({ target: { files: [png()], value: '' } });
+    app.logoSaving = true;
+    await app.saveLogo();
+    app.cancelLogoDraft();
+    assert.ok(app.logoDraftFile);
+    assert.equal(state.uploads.length, 0);
+});
+test('failed draft preparation preserves the previous preview for retry', async () => {
+    const { component } = setup();
+    const app = component();
+    await app.selectLogoFile({ target: { files: [png()], value: '' } });
+    const preview = app.logoDraftUrl;
+    await app.selectLogoFile({ target: { files: [new Blob(['bad'], { type: 'image/png' })], value: '' } });
+    assert.equal(app.logoDraftUrl, preview);
+    assert.ok(app.logoError);
+    assert.equal(app.logoPreparing, false);
+});
+test('public and admin pages initialize branding and bind every static logo', () => {
+    for (const page of ['index.html', 'admin.html']) {
+        const html = fs.readFileSync(path.join(root, page), 'utf8');
+        assert.match(html, /src="site-branding\.js\?v=1"/);
+        assert.match(html, /\.\.\.window\.jasgBranding\(\)/);
+        assert.match(html, /void this\.initBranding\(\)/);
+        const logos = [...html.matchAll(/<img\s[^>]*src="assets\/jasg-logo\.jpeg"[^>]*>/g)];
+        assert.equal(logos.length, 2);
+        logos.forEach(([tag]) => assert.match(tag, /:src="siteLogoUrl"/));
+    }
+    const login = fs.readFileSync(path.join(root, 'login.html'), 'utf8');
+    assert.match(login, /jasgLogoStore\.load\(\)/);
 });
 
 module.exports = async function run() {
