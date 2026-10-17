@@ -58,3 +58,14 @@ se calculan juntos para conservar el centro sobre el cursor.
   del visor, contenido del detalle y fondo del detalle; también verifican la
   geometría de la lupa.
 - Son pruebas simuladas, no E2E en navegador real.
+
+## Abrir el detalle desde la foto — 17 de octubre de 2026
+
+La superficie completa de la foto del catálogo, incluidos precio e indicadores,
+abre el mismo detalle que el botón Detalle en ambas páginas. También responde a
+Enter/Espacio. Los gestos horizontales conservan el cambio de foto; movimientos
+verticales y gestos cancelados no abren el detalle ni avanzan el carrusel.
+
+Pruebas: 8 casos nuevos fallaron antes de implementar (checkpoint `5be32e3`);
+después, `tests/regressions.cjs` pasó 43/43 casos. Los eventos táctiles se simulan;
+no se ha realizado una comprobación en un teléfono físico.

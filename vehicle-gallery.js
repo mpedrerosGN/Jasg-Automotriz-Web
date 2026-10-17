@@ -11,7 +11,40 @@
             zoomSwipeOrigin: null,
             zoomReturnFocus: null,
             suppressZoomUntil: 0,
+            cardDetailBlockedUntil: {},
             detailMagnifier: { active: false, x: 0, y: 0, width: 0, height: 0 },
+
+            openCardDetail(vehicle) {
+                if (Date.now() < (this.cardDetailBlockedUntil[vehicle.id] || 0)) return;
+                this.openDetailModal(vehicle);
+            },
+
+            startCardSwipe(vehicle, event) {
+                const touch = event.changedTouches[0];
+                this.cardSwipeStarts[vehicle.id] = { x: touch.clientX, y: touch.clientY };
+                this.cardDetailBlockedUntil[vehicle.id] = 0;
+                if (event.touches && event.touches.length !== 1) this.cancelCardSwipe(vehicle);
+            },
+
+            endCardSwipe(vehicle, event) {
+                const start = this.cardSwipeStarts[vehicle.id];
+                if (!start) return;
+                delete this.cardSwipeStarts[vehicle.id];
+                const touch = event.changedTouches[0];
+                const dx = touch.clientX - start.x, dy = touch.clientY - start.y;
+                if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                    this.cardDetailBlockedUntil[vehicle.id] = Date.now() + 700;
+                }
+                const images = this.getVehicleImages(vehicle);
+                if (images.length > 1 && Math.abs(dx) > 35 && Math.abs(dx) > Math.abs(dy)) {
+                    this.cardImageIndexes[vehicle.id] = (this.getCardIndex(vehicle) + (dx < 0 ? 1 : -1) + images.length) % images.length;
+                }
+            },
+
+            cancelCardSwipe(vehicle) {
+                delete this.cardSwipeStarts[vehicle.id];
+                this.cardDetailBlockedUntil[vehicle.id] = Date.now() + 700;
+            },
 
             zoomPhotoCount() {
                 return this.selectedVehicle ? this.getVehicleImages(this.selectedVehicle).length : 0;

@@ -43,7 +43,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js?v=5"></script>
     <script src="supabase-data.js?v=3"></script>
-    <script src="vehicle-gallery.js?v=3"></script>
+    <script src="vehicle-gallery.js?v=4"></script>
     <script src="site-branding.js?v=1"></script>
 
     <style>
@@ -235,13 +235,18 @@
                     <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition duration-300 flex flex-col group">
                         
                         <!-- Image Container -->
-                        <div class="relative h-72 sm:h-80 bg-slate-100 overflow-hidden">
+                        <div class="relative h-72 sm:h-80 bg-slate-100 overflow-hidden cursor-pointer focus-visible:outline focus-visible:outline-4 focus-visible:outline-brand-600 focus-visible:outline-offset-[-4px]"
+                             role="button" tabindex="0" :aria-label="`Ver detalles de ${vehicle.brand} ${vehicle.model}`"
+                             @click="openCardDetail(vehicle)"
+                             @keydown.enter.prevent="openDetailModal(vehicle)"
+                             @keydown.space.prevent="openDetailModal(vehicle)"
+                             @touchstart.passive="startCardSwipe(vehicle, $event)"
+                             @touchend="endCardSwipe(vehicle, $event)"
+                             @touchcancel="cancelCardSwipe(vehicle)">
                             <img :src="getCardImage(vehicle)" 
                                  :alt="vehicle.brand + ' ' + vehicle.model"
                                  :class="vehicle.status === 'Vendido' ? 'brightness-50 saturate-50' : ''"
-                                 class="w-full h-full object-contain group-hover:scale-[1.02] transition duration-500"
-                                 @touchstart="startCardSwipe(vehicle, $event)"
-                                 @touchend="endCardSwipe(vehicle, $event)">
+                                 class="w-full h-full object-contain group-hover:scale-[1.02] transition duration-500" draggable="false">
 
                             <template x-if="getVehicleImages(vehicle).length > 1">
                                 <div class="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/45 px-2 py-1">
@@ -1160,24 +1165,6 @@
 
                 getCardImage(vehicle) {
                     return this.getVehicleImages(vehicle)[this.getCardIndex(vehicle)];
-                },
-
-                startCardSwipe(vehicle, event) {
-                    this.cardSwipeStarts[vehicle.id] = event.changedTouches[0].clientX;
-                },
-
-                endCardSwipe(vehicle, event) {
-                    const start = this.cardSwipeStarts[vehicle.id];
-                    if (start === undefined) return;
-                    const distance = event.changedTouches[0].clientX - start;
-                    const images = this.getVehicleImages(vehicle);
-                    if (images.length > 1 && Math.abs(distance) > 35) {
-                        const current = this.getCardIndex(vehicle);
-                        this.cardImageIndexes[vehicle.id] = distance < 0
-                            ? (current + 1) % images.length
-                            : (current - 1 + images.length) % images.length;
-                    }
-                    delete this.cardSwipeStarts[vehicle.id];
                 },
 
                 getFeaturesList(features) {
