@@ -82,3 +82,20 @@ test('periods are restricted and do not include older events', async () => {
     assert.equal((await core.readStats(store, 30, now)).visits, 1);
     await assert.rejects(() => core.readStats(store, 999, now));
 });
+
+test('browser integration tracks public openings and provides protected dashboard', () => {
+    const index = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    const admin = fs.readFileSync(path.join(__dirname, '../admin.html'), 'utf8');
+    assert.match(index, /jasgAnalytics\?\.track\('vehicle_view'/);
+    assert.match(admin, /jasgAnalyticsDashboard\(\)/);
+    assert.ok(fs.existsSync(path.join(__dirname, '../analytics.js')));
+});
+
+test('HTTP rejects unauthorized reads and invalid collection without touching storage', async () => {
+    const { collect, stats } = await import('../lib/analytics-http.mjs');
+    const blocked = () => { throw new Error('Must not access storage'); };
+    assert.equal((await stats(new Request('https://site.test/api/analytics/stats'), blocked)).status, 401);
+    assert.equal((await collect(new Request('https://site.test/api/analytics/event', { method: 'POST', body: '{}' }), {}, blocked)).status, 403);
+    const request = new Request('https://site.test/api/analytics/event', { method: 'POST', headers: { origin: 'https://site.test', 'content-type': 'application/json' }, body: '{}' });
+    assert.equal((await collect(request, { deploy: { context: 'production', published: true } }, blocked)).status, 400);
+});
