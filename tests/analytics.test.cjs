@@ -99,3 +99,95 @@ test('HTTP rejects unauthorized reads and invalid collection without touching st
     const request = new Request('https://site.test/api/analytics/event', { method: 'POST', headers: { origin: 'https://site.test', 'content-type': 'application/json' }, body: '{}' });
     assert.equal((await collect(request, { deploy: { context: 'production', published: true } }, blocked)).status, 400);
 });
+
+test('HTTP handles valid collection, privacy, preview, authentication and outages', async () => {
+    const { collect, stats } = await import('../lib/analytics-http.mjs');
+    const store = storeMock();
+    const ctx = { ...context, deploy: { context: 'production', published: true } };
+    const request = (data = body, extraHeaders = {}) => new Request('https://site.test/api/analytics/event', { method: 'POST', headers: { origin: 'https://site.test', 'content-type': 'application/json', ...extraHeaders }, body: JSON.stringify(data) });
+    assert.equal((await collect(request(), ctx, () => store)).status, 200);
+    assert.equal((await collect(request(), { deploy: { context: 'deploy-preview' } }, () => store)).status, 202);
+    assert.equal((await collect(request(body, { dnt: '1' }), ctx, () => store)).status, 202);
+    assert.equal((await collect(request(body, { 'user-agent': 'crawler' }), ctx, () => store)).status, 202);
+    assert.equal((await collect(request(body, { 'content-type': 'text/plain' }), ctx, () => store)).status, 415);
+    assert.equal((await collect(request({ data: 'a'.repeat(2050) }), ctx, () => store)).status, 413);
+    assert.equal((await collect(new Request('https://site.test'), ctx, () => store)).status, 405);
+    assert.equal((await collect(request(), ctx, () => { throw new Error('secret'); })).status, 503);
+    const adminRequest = days => new Request(`https://site.test/api/analytics/stats?days=${days}`, { headers: { authorization: 'Bearer test-token' } });
+    const authenticated = async () => new Response(JSON.stringify({ id: 'real-auth-user' }));
+    const response = await stats(adminRequest(1), () => store, authenticated);
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.pageViews, 1);
+    assert.equal(result.visits, 1);
+    assert.doesNotMatch(JSON.stringify(result), /11111111|22222222/);
+    assert.equal((await stats(adminRequest(999), () => store, authenticated)).status, 400);
+    assert.equal((await stats(adminRequest(7), () => store, async () => new Response('{}', { status: 401 }))).status, 401);
+    assert.equal((await stats(adminRequest(7), () => store, async () => { throw new Error('secret'); })).status, 503);
+    assert.equal((await stats(new Request('https://site.test', { method: 'POST' }), () => store)).status, 405);
+});
+
+test('counts link destinations and reports storage capacity/conflict honestly', async () => {
+    const store = storeMock();
+    const event = core.normalizeEvent({ ...body, type: 'link_click', target: 'instagram' }, context, now);
+    await core.recordEvent(store, event);
+    assert.equal((await core.readStats(store, 1, now)).links.instagram, 1);
+    await assert.rejects(() => core.recordEvent({ getWithMetadata: async () => null, setJSON: async () => ({ modified: false }) }, event), /conflict/);
+    const seen = Object.fromEntries(Array.from({length:5000}, (_, i) => [String(i), true]));
+    await assert.rejects(() => core.recordEvent({getWithMetadata: async () => ({data:{seen}})}, event), /capacity/);
+});
+
+const vm = require('node:vm');
+function browserFixture(options = {}) {
+    const sent = [], listeners = {}, storage = new Map();
+    const fixture = { window: {}, location: { pathname: '/', hostname: 'site.test', href: 'https://site.test/' }, navigator: { userAgent: options.agent || 'Desktop', doNotTrack: options.dnt ? '1' : '0' },
+        document: { referrer: options.referrer || '', addEventListener: (name, fn) => { listeners[name] = fn; }, querySelectorAll: () => [] },
+        crypto: require('node:crypto').webcrypto, URL, Date, sessionStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
+        fetch: async (url, config) => { sent.push(JSON.parse(config.body)); return {}; } };
+    fixture.window.jasgSupabase = { auth: { getSession: async () => ({ data: { session: options.admin ? {} : null } }) } };
+    vm.createContext(fixture);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../analytics.js'), 'utf8'), fixture, { filename: 'analytics.js' });
+    return { ...fixture, sent, listeners, storage };
+}
+test('browser sends real events with one session and preserves source', async () => {
+    const browser = browserFixture({ referrer: 'https://www.instagram.com/?private=secret', agent: 'Android Mobile' });
+    await browser.window.jasgAnalytics.track('page_view');
+    await browser.window.jasgAnalytics.track('vehicle_view', { vehicleId: body.id });
+    assert.equal(browser.sent.length, 2);
+    assert.equal(browser.sent[0].session, browser.sent[1].session);
+    assert.equal(browser.sent[0].source, 'instagram');
+    assert.equal(browser.sent[0].device, 'mobile');
+    assert.doesNotMatch(JSON.stringify(browser.sent), /secret/);
+    browser.storage.clear();
+    browser.listeners.DOMContentLoaded();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(browser.sent.length, 3);
+});
+test('browser excludes authenticated admins and do-not-track visitors', async () => {
+    for (const options of [{ admin: true }, { dnt: true }]) {
+        const browser = browserFixture(options);
+        await browser.window.jasgAnalytics.track('page_view');
+        assert.equal(browser.sent.length, 0);
+    }
+});
+test('dashboard reads protected real data and displays errors instead of fake zeros', async () => {
+    const browser = {window: {}, Intl, Date, AbortSignal, fetch: async () => new Response(JSON.stringify({visits:2,countries:{CL:2},vehicles:{[body.id]:{views:3,whatsapp:1}},daily:[{visits:2}]}))};
+    browser.window.jasgSupabase = {auth:{getSession:async()=>({data:{session:{access_token:'test'}}})}};
+    vm.createContext(browser);
+    vm.runInContext(fs.readFileSync(path.join(__dirname,'../analytics-dashboard.js'),'utf8'), browser, {filename:'analytics-dashboard.js'});
+    const dashboard = browser.window.jasgAnalyticsDashboard();
+    dashboard.vehicles = [{id:body.id,brand:'JASG',model:'Test',year:2026}];
+    await dashboard.loadAnalytics();
+    assert.equal(dashboard.analytics.visits, 2);
+    assert.equal(dashboard.analyticsRows('countries')[0].label, 'Chile');
+    assert.equal(dashboard.analyticsVehicles[0].views, 3);
+    assert.equal(dashboard.analyticsBar(1), '50%');
+    assert.ok(dashboard.analyticsDate(now.toISOString()));
+    browser.fetch = async () => new Response('{}', {status:503});
+    await dashboard.loadAnalytics();
+    assert.equal(dashboard.analytics, null);
+    assert.match(dashboard.analyticsError, /No se pudieron/);
+    browser.window.jasgSupabase.auth.getSession = async()=>({data:{session:null}});
+    await dashboard.loadAnalytics();
+    assert.match(dashboard.analyticsError, /sesión/);
+});
