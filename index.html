@@ -45,6 +45,7 @@
     <script src="supabase-data.js?v=3"></script>
     <script src="vehicle-gallery.js?v=4"></script>
     <script src="site-branding.js?v=1"></script>
+    <script src="analytics.js?v=1"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -328,7 +329,7 @@
                                         class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2">
                                     <i class="fa-solid fa-eye text-brand-600"></i> Detalle
                                 </button>
-                                <button @click="contactWhatsApp(`Hola JASG Automotriz, estoy interesado en el vehículo ${vehicle.brand} ${vehicle.model} ${vehicle.year} con precio ${formatCurrency(vehicle.price)}`)" 
+                                <button @click="contactWhatsApp(`Hola JASG Automotriz, estoy interesado en el vehículo ${vehicle.brand} ${vehicle.model} ${vehicle.year} con precio ${formatCurrency(vehicle.price)}`, vehicle.id)" 
                                         class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20">
                                     <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
                                 </button>
@@ -879,7 +880,7 @@
                             <div class="text-xs text-slate-500 font-medium">
                                 ¿Interesado en este modelo? Contacta directamente a nuestro vendedor asignado.
                             </div>
-                            <button @click="contactWhatsApp(`Hola JASG Automotriz, me gustaría solicitar más información y agendar prueba del ${selectedVehicle.brand} ${selectedVehicle.model} (${selectedVehicle.year}) - ${formatCurrency(selectedVehicle.price)}`)" 
+                            <button @click="contactWhatsApp(`Hola JASG Automotriz, me gustaría solicitar más información y agendar prueba del ${selectedVehicle.brand} ${selectedVehicle.model} (${selectedVehicle.year}) - ${formatCurrency(selectedVehicle.price)}`, selectedVehicle.id)" 
                                     class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/30">
                                 <i class="fa-brands fa-whatsapp text-xl"></i> Cotizar vía WhatsApp
                             </button>
@@ -1319,6 +1320,7 @@
                 },
 
                 openDetailModal(vehicle) {
+                    window.jasgAnalytics?.track('vehicle_view', { vehicleId: vehicle.id });
                     this.selectedVehicle = vehicle;
                     this.activeDetailImage = this.getMainImage(vehicle);
                     this.detailModalOpen = true;
@@ -1343,7 +1345,8 @@
                     this.finishGallerySwipe(event);
                 },
 
-                contactWhatsApp(text) {
+                contactWhatsApp(text, vehicleId) {
+                    window.jasgAnalytics?.track('whatsapp_click', vehicleId ? { vehicleId } : {});
                     const phone = "56975694441";
                     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
                 }

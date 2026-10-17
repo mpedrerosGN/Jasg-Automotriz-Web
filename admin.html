@@ -45,6 +45,7 @@
     <script src="supabase-data.js?v=3"></script>
     <script src="vehicle-gallery.js?v=4"></script>
     <script src="site-branding.js?v=1"></script>
+    <script src="analytics-dashboard.js?v=1"></script>
     <script src="auth.js?v=2"></script>
 
     <style>
@@ -423,6 +424,44 @@
             </section>
 
             <!-- KPI Counters Grid -->
+            <section x-data="jasgAnalyticsDashboard()" x-init="loadAnalytics()" class="mb-8 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm" aria-labelledby="analytics-heading">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+                    <div><h2 id="analytics-heading" class="text-xl font-bold text-slate-900">Visitas y rendimiento real</h2><p class="text-sm text-slate-500">Actividad del catálogo público y la página de enlaces.</p></div>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="sr-only" for="analytics-period">Período de estadísticas</label>
+                        <select id="analytics-period" x-model="analyticsDays" @change="loadAnalytics()" :disabled="analyticsLoading" class="min-h-11 border border-slate-200 rounded-xl px-3 text-sm"><option value="1">Hoy</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option></select>
+                        <button type="button" @click="loadAnalytics()" :disabled="analyticsLoading" class="min-h-11 rounded-xl bg-brand-50 border border-brand-200 px-4 text-sm font-bold text-brand-700 disabled:opacity-50">Actualizar</button>
+                    </div>
+                </div>
+                <p x-show="analyticsLoading" role="status" class="py-5 text-slate-500">Cargando estadísticas reales…</p>
+                <p x-show="analyticsError" x-text="analyticsError" role="alert" class="rounded-xl bg-rose-50 p-4 text-rose-700"></p>
+                <template x-if="analytics">
+                    <div>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                            <template x-for="metric in [{key:'visits',label:'Visitas (sesiones)'},{key:'pageViews',label:'Páginas vistas'},{key:'vehicleClicks',label:'Aperturas de vehículos'},{key:'whatsappClicks',label:'Clics en WhatsApp'}]" :key="metric.key">
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs text-slate-500" x-text="metric.label"></p><p class="mt-2 text-3xl font-black text-slate-900" x-text="analytics[metric.key].toLocaleString('es-CL')"></p></div>
+                            </template>
+                        </div>
+                        <p x-show="analytics.visits === 0" class="mb-5 rounded-xl bg-brand-50 p-4 text-sm text-brand-800">Todavía no hay visitas registradas en este período. Aquí aparecerán datos reales a medida que lleguen visitantes.</p>
+                        <h3 class="font-bold text-sm mb-3">Visitas por día · horario de Chile</h3>
+                        <div class="flex items-end gap-1 h-28 mb-2 overflow-x-auto" role="img" aria-label="Gráfico de visitas diarias. Los valores se pueden consultar en el detalle inferior.">
+                            <template x-for="day in analytics.daily" :key="day.day"><div class="flex-1 min-w-2 h-full flex items-end" :title="day.day + ': ' + day.visits + ' visitas'"><div class="w-full bg-brand-500 rounded-t" :style="{height: analyticsBar(day.visits)}"></div></div></template>
+                        </div>
+                        <details class="text-sm mb-6"><summary class="cursor-pointer text-brand-700 py-2">Ver valores diarios</summary><div class="max-h-48 overflow-auto"><template x-for="day in analytics.daily" :key="day.day"><p class="flex justify-between border-b border-slate-100 py-1"><span x-text="day.day"></span><span x-text="day.visits + ' visitas'"></span></p></template></div></details>
+                        <div class="grid md:grid-cols-3 gap-5 mb-6">
+                            <template x-for="group in [{key:'countries',label:'Países de origen'},{key:'sources',label:'Cómo llegaron'},{key:'devices',label:'Dispositivos'}]" :key="group.key">
+                                <div class="rounded-xl border border-slate-200 p-4"><h3 class="font-bold text-sm mb-3" x-text="group.label"></h3><p x-show="!analyticsRows(group.key).length" class="text-sm text-slate-500">Sin datos en este período.</p><div class="max-h-60 overflow-auto"><template x-for="row in analyticsRows(group.key)" :key="row.key"><p class="flex justify-between gap-3 py-2 border-b border-slate-100 text-sm"><span x-text="row.label"></span><strong x-text="row.count"></strong></p></template></div></div>
+                            </template>
+                        </div>
+                        <h3 class="font-bold text-sm mb-3">Vehículos más consultados</h3>
+                        <p x-show="!analyticsVehicles.length" class="text-sm text-slate-500 mb-4">Aún no hay clics en vehículos en este período.</p>
+                        <div x-show="analyticsVehicles.length" class="overflow-x-auto mb-5"><table class="w-full text-sm text-left"><thead><tr class="border-b border-slate-200 text-slate-500"><th class="p-2">Vehículo</th><th class="p-2">Aperturas</th><th class="p-2">WhatsApp</th></tr></thead><tbody><template x-for="vehicle in analyticsVehicles" :key="vehicle.id"><tr class="border-b border-slate-100"><td class="p-2" x-text="vehicle.label"></td><td class="p-2" x-text="vehicle.views"></td><td class="p-2" x-text="vehicle.whatsapp"></td></tr></template></tbody></table></div>
+                        <details class="mb-5 text-sm"><summary class="cursor-pointer text-brand-700 py-2">Clics en redes y enlaces</summary><p x-show="!analyticsRows('links').length" class="text-slate-500">Sin clics registrados.</p><template x-for="row in analyticsRows('links')" :key="row.key"><p class="flex justify-between py-1"><span x-text="row.label"></span><strong x-text="row.count"></strong></p></template></details>
+                        <p class="text-xs text-slate-500" x-text="'Primer registro: ' + analyticsDate(analytics.startedAt) + ' · Actualizado: ' + analyticsDate(analytics.updatedAt)"></p>
+                    </div>
+                </template>
+                <p class="mt-4 text-xs leading-relaxed text-slate-500">Datos desde la activación, sin historial anterior. Una sesión por pestaña, con vencimiento tras 30 minutos de inactividad; se cuenta nuevamente al cambiar de día. Los clics son acciones, no personas ni ventas. País aproximado; una VPN puede alterarlo. No guardamos IP ni ubicación precisa en estas estadísticas. Se excluyen administradores con sesión iniciada y navegadores que solicitan no ser rastreados. Bloqueadores y fallas de red pueden reducir el conteo. Actualización manual.</p>
+            </section>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
                     <div class="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl font-bold border border-brand-100">
