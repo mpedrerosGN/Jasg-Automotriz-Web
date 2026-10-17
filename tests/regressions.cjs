@@ -166,6 +166,49 @@ test('failed equipment removal preserves existing links', async () => {
 });
 
 for (const page of ['index.html', 'admin.html']) {
+    test(`${page}: clicking or tapping the card photo opens the same detail`, () => {
+        const app = gallery(page);
+        const car = app.selectedVehicle;
+        app.detailModalOpen = false;
+        app.openCardDetail(car);
+        assert.equal(app.detailModalOpen, true);
+        assert.equal(app.selectedVehicle, car);
+        app.detailModalOpen = false;
+        app.startCardSwipe(car, { changedTouches: [{ clientX: 100, clientY: 100 }] });
+        app.endCardSwipe(car, { changedTouches: [{ clientX: 102, clientY: 102 }] });
+        app.openCardDetail(car);
+        assert.equal(app.detailModalOpen, true);
+    });
+    test(`${page}: swiping photos does not open details`, () => {
+        const app = gallery(page), car = app.selectedVehicle;
+        app.detailModalOpen = false;
+        app.startCardSwipe(car, { changedTouches: [{ clientX: 200, clientY: 100 }] });
+        app.endCardSwipe(car, { changedTouches: [{ clientX: 50, clientY: 100 }] });
+        app.openCardDetail(car);
+        assert.equal(app.detailModalOpen, false);
+        assert.equal(app.getCardIndex(car), 1);
+    });
+    test(`${page}: vertical scrolling and cancelled touches do not open details`, () => {
+        const app = gallery(page), car = app.selectedVehicle;
+        app.detailModalOpen = false;
+        app.startCardSwipe(car, { changedTouches: [{ clientX: 100, clientY: 100 }] });
+        app.endCardSwipe(car, { changedTouches: [{ clientX: 145, clientY: 240 }] });
+        app.openCardDetail(car);
+        assert.equal(app.detailModalOpen, false);
+        assert.equal(app.getCardIndex(car), 0);
+        app.startCardSwipe(car, { changedTouches: [{ clientX: 100, clientY: 100 }] });
+        app.cancelCardSwipe(car);
+        app.openCardDetail(car);
+        assert.equal(app.detailModalOpen, false);
+    });
+    test(`${page}: photo and overlays have a keyboard-accessible detail action`, () => {
+        const container = read(page).split('<!-- Image Container -->')[1].split('<img')[0];
+        assert.match(container, /role="button"/);
+        assert.match(container, /tabindex="0"/);
+        assert.match(container, /@click="openCardDetail\(vehicle\)"/);
+        assert.match(container, /@keydown\.enter\.prevent="openDetailModal\(vehicle\)"/);
+        assert.match(container, /@keydown\.space\.prevent="openDetailModal\(vehicle\)"/);
+    });
     test(`${page}: fullscreen plus and navigation clicks keep both dialogs open`, () => {
         const app = gallery(page);
         app.initGallery();
