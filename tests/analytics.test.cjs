@@ -138,6 +138,31 @@ test('counts link destinations and reports storage capacity/conflict honestly', 
 });
 
 const vm = require('node:vm');
+test('comparison keeps periods separate and diagnostic never reads or writes storage', async () => {
+    const store = storeMock();
+    await core.recordEvent(store, core.normalizeEvent(body, context, now));
+    const report = await core.readReport(store, 7, now);
+    assert.equal(report.visits, 1);
+    assert.equal(report.previous.visits, 0);
+    assert.equal(report.period.to, '2026-10-17');
+    const { stats } = await import('../lib/analytics-http.mjs');
+    const request = new Request('https://site.test/api/analytics/stats?diagnostic=1', {headers:{authorization:'Bearer test'}});
+    const response = await stats(request, () => { throw new Error('Diagnostic must not use storage'); }, async()=>new Response('{"id":"admin"}'), context);
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.country, 'CL');
+    assert.equal(result.counted, false);
+    assert.doesNotMatch(JSON.stringify(result), /PRIVATE/);
+});
+test('new session funnel deduplicates repeated WhatsApp and campaign counts', async () => {
+    const store = storeMock();
+    for (let i=0;i<3;i++) await core.recordEvent(store, core.normalizeEvent({...body,id:`0000000${i}-1111-4111-8111-111111111111`,type:i?'whatsapp_click':'page_view',campaign:'octubre'},context,now));
+    const result = await core.readStats(store,1,now);
+    assert.equal(result.measuredSessions,1);
+    assert.equal(result.contactSessions,1);
+    assert.equal(result.whatsappClicks,2);
+    assert.equal(result.campaigns.c_octubre,1);
+});
 function browserFixture(options = {}) {
     const sent = [], listeners = {}, storage = new Map();
     const fixture = { window: {}, location: { pathname: '/', hostname: 'site.test', href: 'https://site.test/' }, navigator: { userAgent: options.agent || 'Desktop', doNotTrack: options.dnt ? '1' : '0' },
