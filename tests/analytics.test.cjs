@@ -163,6 +163,12 @@ test('new session funnel deduplicates repeated WhatsApp and campaign counts', as
     assert.equal(result.whatsappClicks,2);
     assert.equal(result.campaigns.c_octubre,1);
 });
+test('vehicle contact rate counts only sessions with both detail and WhatsApp', async () => {
+    const store = storeMock();
+    for (let i=0;i<3;i++) await core.recordEvent(store,core.normalizeEvent({...body,id:`0000000${i}-1111-4111-8111-111111111111`,type:i?'whatsapp_click':'vehicle_view',vehicleId:body.id},context,now));
+    const result = await core.readStats(store,1,now);
+    assert.deepEqual(result.vehicleEngagement[body.id],{viewSessions:1,contactSessions:1,viewContactSessions:1});
+});
 function browserFixture(options = {}) {
     const sent = [], listeners = {}, storage = new Map();
     const fixture = { window: {}, location: { pathname: '/', hostname: 'site.test', href: 'https://site.test/' }, navigator: { userAgent: options.agent || 'Desktop', doNotTrack: options.dnt ? '1' : '0' },
