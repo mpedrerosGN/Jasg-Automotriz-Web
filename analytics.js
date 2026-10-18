@@ -3,12 +3,14 @@
     const page = location.pathname.startsWith('/enlaces') ? 'links' : 'catalog';
     if (!['/', '/index.html', '/enlaces', '/enlaces/', '/enlaces/index.html'].includes(location.pathname)) return;
     let memorySession;
-    let disabled = navigator.doNotTrack === '1' || navigator.globalPrivacyControl === true;
+    let disabled = navigator.doNotTrack === '1' || navigator.globalPrivacyControl === true || navigator.webdriver === true;
     const ready = (async () => {
         try { if ((await window.jasgSupabase?.auth.getSession())?.data?.session) disabled = true; }
         catch { disabled = true; }
     })();
     function source() {
+        const declared = new URL(location.href).searchParams.get('utm_source')?.toLowerCase();
+        if (['instagram', 'facebook', 'google', 'bing'].includes(declared)) return declared;
         let hostname = '';
         try { hostname = new URL(document.referrer).hostname; } catch { /* Direct visit. */ }
         if (!hostname || hostname === location.hostname) return 'direct';
@@ -20,7 +22,10 @@
     function session() {
         let saved = memorySession;
         try { saved = JSON.parse(sessionStorage.getItem('jasg-analytics-session')) || saved; } catch { /* Private browsing fallback. */ }
-        if (!saved || Date.now() - saved.last > 1800000) saved = { id: crypto.randomUUID(), source: source() };
+        if (!saved || Date.now() - saved.last > 1800000) {
+            const campaign = new URL(location.href).searchParams.get('utm_campaign') || '';
+            saved = { id: crypto.randomUUID(), source: source(), campaign: /^[a-z0-9][a-z0-9_-]{0,39}$/.test(campaign) ? campaign : '' };
+        }
         saved.last = Date.now(); memorySession = saved;
         try { sessionStorage.setItem('jasg-analytics-session', JSON.stringify(saved)); } catch { /* Memory-only session. */ }
         return saved;
@@ -32,7 +37,7 @@
             const current = session();
             const device = /iPad|Tablet/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? 'tablet' : /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
             await fetch('/api/analytics/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
-                body: JSON.stringify({ id: crypto.randomUUID(), session: current.id, type, page, source: current.source, device, ...extras }) });
+                body: JSON.stringify({ id: crypto.randomUUID(), session: current.id, type, page, source: current.source, campaign: current.campaign || '', device, ...extras }) });
         } catch { /* Measurement must never interrupt catalogue navigation. */ }
     }
     window.jasgAnalytics = { track };
