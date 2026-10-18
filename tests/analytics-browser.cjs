@@ -27,6 +27,7 @@ const fixture = { visits: 2, pageViews: 3, vehicleClicks: 1, whatsappClicks: 1, 
             let fail = false;
             await page.route('**/api/analytics/stats*', route => {
                 assert.equal(route.request().headers().authorization, 'Bearer local-test');
+                if (route.request().url().includes('diagnostic=1')) return route.fulfill({contentType:'application/json',body:JSON.stringify({country:'CL',counted:false})});
                 return route.fulfill({ status: fail ? 503 : 200, contentType: 'application/json', body: JSON.stringify(fixture) });
             });
             await page.goto(`http://127.0.0.1:${server.address().port}/admin.html`, { waitUntil: 'networkidle' });
@@ -34,8 +35,11 @@ const fixture = { visits: 2, pageViews: 3, vehicleClicks: 1, whatsappClicks: 1, 
             const section = page.locator('[aria-labelledby="analytics-heading"]');
             await section.getByText('Chile', { exact: true }).waitFor();
             assert.equal(await section.getByText('Visitas (sesiones)').count(), 1);
-            await section.locator('select').selectOption('7');
+            await section.locator('#analytics-period').selectOption('7');
             await section.getByText('Chile', { exact: true }).waitFor();
+            await section.getByRole('button', {name:'Comprobar mi país detectado'}).click();
+            await section.getByText('País detectado ahora: Chile', {exact:true}).waitFor();
+            assert.equal(await section.getByText('Tasa de clic de contacto', {exact:true}).count(),1);
             assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
             await section.screenshot({ path: path.join(root, '.tools', `analytics-${viewport.width}.png`) });
             fail = true;

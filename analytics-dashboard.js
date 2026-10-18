@@ -54,6 +54,10 @@
                 return { id, label: vehicle ? `${vehicle.brand} ${vehicle.model} (${vehicle.year})` : `Vehículo no disponible (${id.slice(0, 8)})`, ...counts };
             }).sort((a, b) => this.vehicleSort === 'whatsapp' ? b.whatsapp - a.whatsapp || b.views - a.views : b.views - a.views || b.whatsapp - a.whatsapp).slice(0, 20);
         },
+        vehicleRate(id) {
+            const data = this.analytics?.vehicleEngagement?.[id];
+            return data?.viewSessions ? `${(100 * data.viewContactSessions / data.viewSessions).toFixed(1)}% (${data.viewContactSessions}/${data.viewSessions})` : 'Sin base medida';
+        },
         analyticsBar(visits) { return `${Math.max(0, visits / Math.max(1, ...(this.analytics?.daily || []).map(day => day.visits)) * 100)}%`; },
         analyticsDate(value) { return value ? new Date(value).toLocaleString('es-CL', { timeZone: 'America/Santiago' }) : 'Sin visitas registradas todavía'; }
     });

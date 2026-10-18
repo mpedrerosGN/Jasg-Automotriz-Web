@@ -1,5 +1,15 @@
 # Estadísticas reales
 
+## Actualización del 18 de octubre de 2026
+
+- Diagnóstico protegido `GET /api/analytics/stats?diagnostic=1`: país estimado de la conexión actual proporcionado por Netlify. No consulta ni escribe Blobs, no registra IP ni devuelve ciudad/coordenadas. No corrige ni atribuye el historial. Para resolver la discrepancia reportada, el administrador debe ejecutarlo desde su conexión y comparar Wi-Fi/datos móviles si corresponde.
+- Comparación con el período inmediatamente anterior de igual cantidad de días calendario. El día actual es parcial. No se calcula crecimiento porcentual sin base anterior o sin cobertura histórica suficiente.
+- Medición ampliada aditiva: sesiones con detalles, sesiones con WhatsApp y tasa global de clic de contacto. Se deduplica por sesión/día, no por persona. No son ventas ni mensajes confirmados. Los datos anteriores permanecen intactos; estas métricas no se reconstruyen retrospectivamente.
+- Ranking ordenable por aperturas o clics WhatsApp, con tasa por vehículo: sesiones que hicieron ambas acciones / sesiones que abrieron detalles, independientemente del orden. Contactos sin detalle se excluyen de esta tasa.
+- `utm_source` admite instagram/facebook/google/bing; `utm_campaign` admite nombres de 1–40 caracteres minúsculos alfanuméricos, guion y guion bajo. No usar datos personales. Se retiene la atribución inicial durante la sesión. Los parámetros son declarados por el enlace y no verifican quién publicó la campaña.
+- Filtro ampliado de agentes automatizados identificables y `navigator.webdriver`; no garantiza bloquear toda automatización ni reclasifica tráfico antiguo.
+- Pruebas RED: 16/18 antes de comparación/diagnóstico/contactos; 18/19 antes de tasa por vehículo. GREEN: 19/19, cobertura backend 100% líneas y más del 94% ramas. Chrome local 1440px y 390px verifica también diagnóstico sin conteo. No se enviaron eventos de prueba a producción.
+
 Panel de Gestión → Visitas y rendimiento real. Actualización manual; períodos hoy, 7, 30 y 90 días. Días calculados en America/Santiago.
 
 Se miden sesiones por pestaña (30 minutos de inactividad, separadas también por día), páginas vistas, aperturas de detalle de vehículos, clics en WhatsApp y enlaces sociales/teléfono. No son personas únicas, conversaciones ni ventas. País aproximado proporcionado por Netlify; fuentes según referente del navegador, sin guardar URLs completas. Directo incluye referencias no disponibles. No hay datos retrospectivos ni valores de demostración.
