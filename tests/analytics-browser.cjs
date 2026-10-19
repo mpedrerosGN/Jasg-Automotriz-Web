@@ -6,6 +6,11 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '..');
 const fixture = { visits: 2, pageViews: 3, vehicleClicks: 1, whatsappClicks: 1, countries: { CL: 2 }, sources: { instagram: 2 }, devices: { mobile: 2 }, vehicles: {}, links: { instagram: 1 }, daily: [{ day: '2026-10-17', visits: 2 }], startedAt: '2026-10-17T15:00:00Z', updatedAt: '2026-10-17T15:00:00Z' };
+// Rich visual fixture stays in this local test only; never shipped to the site.
+Object.assign(fixture, {visits:124,pageViews:203,vehicleClicks:57,whatsappClicks:18,measuredSessions:124,detailSessions:41,contactSessions:14,
+    countries:{CL:104,AR:12,ZZ:8},sources:{instagram:68,direct:40,google:16},devices:{mobile:88,desktop:30,tablet:6},
+    daily:[12,24,15,8,29,16,20].map((visits,index)=>({day:`2026-10-${13+index}`,visits})),
+    previous:{visits:100,pageViews:180,vehicleClicks:40,whatsappClicks:12},previousCovered:true});
 (async () => {
     const server = http.createServer((request, response) => {
         const url = new URL(request.url, 'http://localhost');
@@ -36,6 +41,12 @@ const fixture = { visits: 2, pageViews: 3, vehicleClicks: 1, whatsappClicks: 1, 
             await page.evaluate(() => { Alpine.$data(document.body).currentView = 'dashboard'; });
             const section = page.locator('[aria-labelledby="analytics-heading"]');
             await section.getByText('Chile', { exact: true }).waitFor();
+            assert.equal(statsRequests,1);
+            await page.evaluate(() => { Alpine.$data(document.body).currentView = 'catalog'; });
+            await page.evaluate(async () => { await new Promise(requestAnimationFrame); await Promise.allSettled(document.getAnimations().map(animation => animation.finished)); });
+            await page.evaluate(() => { Alpine.$data(document.body).currentView = 'dashboard'; });
+            await page.evaluate(async () => { await new Promise(requestAnimationFrame); await Promise.allSettled(document.getAnimations().map(animation => animation.finished)); });
+            assert.equal(statsRequests,1,'Reopening management reuses current data');
             assert.equal(await section.getByText('Visitas (sesiones)').count(), 1);
             await section.locator('#analytics-period').selectOption('7');
             await section.getByText('Chile', { exact: true }).waitFor();
@@ -43,8 +54,11 @@ const fixture = { visits: 2, pageViews: 3, vehicleClicks: 1, whatsappClicks: 1, 
             await section.getByRole('button', {name:'Comprobar mi país detectado'}).click();
             await section.getByText('País detectado ahora: Chile', {exact:true}).waitFor();
             assert.equal(await section.getByText('Tasa de clic de contacto', {exact:true}).count(),1);
+            await section.getByText('Diagnóstico de país · Comprobar mi conexión',{exact:true}).click();
+            assert.equal(await section.locator('svg.kpi-trend').count(),1);
+            assert.equal(await section.locator('.kpi-donut').count(),1);
             assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-            await section.screenshot({ path: path.join(root, '.tools', `analytics-${viewport.width}.png`) });
+            await section.screenshot({ path: path.join(root, '.tools', `analytics-${viewport.width}.png`),style:'header { visibility:hidden !important; }' });
             fail = true;
             await section.getByRole('button', { name: 'Actualizar', exact: true }).click();
             await section.getByRole('alert').waitFor();

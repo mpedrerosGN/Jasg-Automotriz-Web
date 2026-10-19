@@ -1,5 +1,13 @@
 # Estadísticas reales
 
+## Tablero KPI gráfico — 19 de octubre de 2026
+
+Diseño blanco, negro y dorado, tarjetas KPI, curva/área SVG con valores diarios accesibles, anillo CSS por dispositivo y barras de distribución. No se agregan paquetes ni librerías gráficas. Se conservan métricas, filtros, diagnóstico y estados vacíos/errores.
+
+La primera consulta se difiere hasta abrir Panel de Gestión; regresar al catálogo y volver reutiliza la respuesta. Actualizar y cambiar período sí consultan. No hay temporizadores, polling ni animaciones continuas. Los archivos del catálogo público, el recolector y el backend no cambian en esta entrega.
+
+TDD: prueba de geometría inicialmente falló por método ausente (19/20); luego 20/20. Prueba Chrome a 1440 y 390 px verifica cero consultas antes de abrir gestión, reutilización, filtros, gráficos, diagnóstico, errores y ausencia de desbordamiento. Los gráficos usan fixtures locales de prueba, nunca valores de demostración en producción. No es una medición de Core Web Vitals de usuarios reales ni una garantía de latencia del servidor.
+
 ## Actualización del 18 de octubre de 2026
 
 - Diagnóstico protegido `GET /api/analytics/stats?diagnostic=1`: país estimado de la conexión actual proporcionado por Netlify. No consulta ni escribe Blobs, no registra IP ni devuelve ciudad/coordenadas. No corrige ni atribuye el historial. Para resolver la discrepancia reportada, el administrador debe ejecutarlo desde su conexión y comparar Wi-Fi/datos móviles si corresponde.
