@@ -45,7 +45,7 @@
     <script src="supabase-data.js?v=3"></script>
     <script src="vehicle-gallery.js?v=4"></script>
     <script src="site-branding.js?v=1"></script>
-    <script src="analytics-dashboard.js?v=2"></script>
+    <script src="analytics-dashboard.js?v=3"></script>
     <script src="auth.js?v=2"></script>
 
     <style>
@@ -54,6 +54,21 @@
         .gold-focus:focus { border-color: #d79b19; box-shadow: 0 0 0 3px rgba(215,155,25,.18); }
         .brand-wordmark { letter-spacing: .22em; }
         .magnifier-glass { position: absolute; border-radius: 9999px; border: 3px solid white; box-shadow: 0 8px 24px rgba(0,0,0,.35); pointer-events: none; background-repeat: no-repeat; z-index: 12; }
+        .kpi-board { background: #f5f6f8; border: 1px solid #e2e6eb; border-radius: 24px; overflow: hidden; }
+        .kpi-hero { background: radial-gradient(ellipse at top right, #61491d 0, transparent 58%), #141b28; color: white; padding: 28px; }
+        .kpi-eyebrow { color: #e9bf69; font-size: 10px; letter-spacing: .2em; font-weight: 800; text-transform: uppercase; }
+        .kpi-body { padding: 24px; }
+        .kpi-card { background: white; border: 1px solid #e6e9ef; border-radius: 16px; padding: 20px; box-shadow: 0 3px 12px #18233804; position: relative; overflow: hidden; }
+        .kpi-card:before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: #c58a12; }
+        .kpi-icon { width: 32px; height: 32px; border-radius: 10px; background: #fcf5e7; color: #a67108; display: grid; place-items: center; margin-bottom: 15px; }
+        .kpi-panel { background: white; border: 1px solid #e6e9ef; border-radius: 18px; padding: 22px; min-width: 0; }
+        .kpi-charts { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); gap: 20px; margin: 20px 0; }
+        .kpi-donut { width: 160px; height: 160px; border-radius: 50%; display: grid; place-items: center; margin: 22px auto; }
+        .kpi-donut-center { width: 120px; height: 120px; border-radius: 50%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .kpi-trend { width: 100%; height: auto; display: block; }
+        .kpi-board summary { min-height: 44px; align-content: center; }
+        .kpi-board button:focus-visible, .kpi-board select:focus-visible, .kpi-board summary:focus-visible { outline: 3px solid #c58a12; outline-offset: 3px; }
+        @media(max-width: 767px) { .kpi-charts { grid-template-columns: 1fr; } .kpi-body { padding: 14px; } .kpi-hero { padding: 22px 18px; } .kpi-card { padding: 15px; } .kpi-panel { padding: 18px; } }
     </style>
 </head>
 <body class="h-full flex flex-col font-sans text-slate-800 bg-slate-50 antialiased"
@@ -424,29 +439,30 @@
             </section>
 
             <!-- KPI Counters Grid -->
-            <section x-data="jasgAnalyticsDashboard()" x-init="loadAnalytics()" class="mb-8 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm" aria-labelledby="analytics-heading">
-                <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
-                    <div><h2 id="analytics-heading" class="text-xl font-bold text-slate-900">Visitas y rendimiento real</h2><p class="text-sm text-slate-500">Actividad del catálogo público y la página de enlaces.</p></div>
+            <section x-data="jasgAnalyticsDashboard()" x-init="$watch('currentView', value => { if (value === 'dashboard' &amp;&amp; !analytics &amp;&amp; !analyticsLoading &amp;&amp; !analyticsError) loadAnalytics(); }); if (currentView === 'dashboard') loadAnalytics();" class="kpi-board mb-8" aria-labelledby="analytics-heading">
+                <div class="kpi-hero flex flex-wrap items-center justify-between gap-5">
+                    <div><p class="kpi-eyebrow mb-2">JASG · Inteligencia comercial</p><h2 id="analytics-heading" class="text-2xl sm:text-3xl font-bold tracking-tight">El pulso de tu automotora</h2><p class="text-sm text-slate-300 mt-2">Visitas y rendimiento real · Catálogo y enlaces</p></div>
                     <div class="flex flex-wrap gap-2">
                         <label class="sr-only" for="analytics-period">Período de estadísticas</label>
-                        <select id="analytics-period" x-model="analyticsDays" @change="loadAnalytics()" :disabled="analyticsLoading" class="min-h-11 border border-slate-200 rounded-xl px-3 text-sm"><option value="1">Hoy</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option></select>
+                        <select id="analytics-period" x-model="analyticsDays" @change="loadAnalytics()" :disabled="analyticsLoading" class="min-h-11 border border-slate-200 rounded-xl px-3 text-sm text-slate-800 bg-white"><option value="1">Hoy</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option></select>
                         <button type="button" @click="loadAnalytics()" :disabled="analyticsLoading" class="min-h-11 rounded-xl bg-brand-50 border border-brand-200 px-4 text-sm font-bold text-brand-700 disabled:opacity-50">Actualizar</button>
                     </div>
                 </div>
+                <div class="kpi-body">
                 <p x-show="analyticsLoading" role="status" class="py-5 text-slate-500">Cargando estadísticas reales…</p>
-                <div class="mb-6 rounded-xl border border-brand-200 bg-brand-50 p-4">
-                    <h3 class="font-bold text-sm text-brand-800">¿Tu visita aparece en otro país?</h3>
+                <details class="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-1">
+                    <summary class="font-semibold text-sm text-slate-600 cursor-pointer">Diagnóstico de país · Comprobar mi conexión</summary>
                     <p class="text-sm text-slate-600 mt-2">Los países son estimaciones de la conexión, no ubicaciones verificadas. Tus visitas con sesión de administrador no se cuentan; actualizar este panel tampoco suma visitas.</p>
                     <button type="button" @click="diagnoseCountry()" :disabled="diagnosticLoading" class="my-3 min-h-11 rounded-lg bg-white border border-brand-200 px-4 text-sm font-bold text-brand-700 disabled:opacity-50" x-text="diagnosticLoading ? 'Comprobando…' : 'Comprobar mi país detectado'"></button>
                     <p x-show="diagnosticError" x-text="diagnosticError" class="text-sm text-rose-700" role="status"></p>
                     <template x-if="diagnostic"><div role="status" class="text-sm text-slate-700"><p><strong x-text="'País detectado ahora: ' + countryName(diagnostic.country)"></strong></p><p>Esta comprobación no registra una visita ni modifica el historial.</p><p class="mt-2">Si no coincide con tu ubicación, compara desde Wi-Fi y datos móviles, y comprueba si usas VPN o proxy. El resultado corresponde a esta conexión; no identifica a quién pertenecen las visitas anteriores.</p></div></template>
-                </div>
+                </details>
                 <p x-show="analyticsError" x-text="analyticsError" role="alert" class="rounded-xl bg-rose-50 p-4 text-rose-700"></p>
                 <template x-if="analytics">
                     <div>
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                            <template x-for="metric in [{key:'visits',label:'Visitas (sesiones)'},{key:'pageViews',label:'Páginas vistas'},{key:'vehicleClicks',label:'Aperturas de vehículos'},{key:'whatsappClicks',label:'Clics en WhatsApp'}]" :key="metric.key">
-                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-4"><p class="text-xs text-slate-500" x-text="metric.label"></p><p class="mt-2 text-3xl font-black text-slate-900" x-text="analytics[metric.key].toLocaleString('es-CL')"></p><p class="mt-2 text-xs text-slate-500" x-text="comparison(metric.key)"></p></div>
+                            <template x-for="metric in [{key:'visits',label:'Visitas (sesiones)',icon:'fa-users'},{key:'pageViews',label:'Páginas vistas',icon:'fa-layer-group'},{key:'vehicleClicks',label:'Aperturas de vehículos',icon:'fa-car'},{key:'whatsappClicks',label:'Clics en WhatsApp',icon:'fa-comment-dots'}]" :key="metric.key">
+                                <div class="kpi-card"><span class="kpi-icon" aria-hidden="true"><i class="fa-solid" :class="metric.icon"></i></span><p class="text-xs font-medium text-slate-500" x-text="metric.label"></p><p class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-slate-900" x-text="analytics[metric.key].toLocaleString('es-CL')"></p><p class="mt-3 text-xs text-slate-500" x-text="comparison(metric.key)"></p></div>
                             </template>
                         </div>
                         <p x-show="analytics.visits === 0" class="mb-5 rounded-xl bg-brand-50 p-4 text-sm text-brand-800">Todavía no hay visitas registradas en este período. Aquí aparecerán datos reales a medida que lleguen visitantes.</p>
@@ -461,14 +477,32 @@
                             </div>
                             <p class="text-xs text-slate-300 mt-4">Cada sesión cuenta una vez por acción, aunque repita clics. Contacto ÷ sesiones con medición ampliada. Puede contactar desde la tarjeta sin abrir detalles; no es un embudo secuencial ni confirma mensajes o ventas. Disponible desde esta actualización, no reconstruye el historial anterior.</p>
                         </div>
-                        <h3 class="font-bold text-sm mb-3">Visitas por día · horario de Chile</h3>
-                        <div class="flex items-end gap-1 h-28 mb-2 overflow-x-auto" role="img" aria-label="Gráfico de visitas diarias. Los valores se pueden consultar en el detalle inferior.">
-                            <template x-for="day in analytics.daily" :key="day.day"><div class="flex-1 min-w-2 h-full flex items-end" :title="day.day + ': ' + day.visits + ' visitas'"><div class="w-full bg-brand-500 rounded-t" :style="{height: analyticsBar(day.visits)}"></div></div></template>
+                        <div class="kpi-charts">
+                            <div class="kpi-panel">
+                                <div class="flex justify-between gap-3 items-start"><div><h3 class="font-bold text-slate-900">Evolución de visitas</h3><p class="text-xs text-slate-500 mt-1">Sesiones por día · horario de Chile</p></div><span class="text-xs text-brand-700 bg-brand-50 rounded-full px-3 py-1">Tráfico real</span></div>
+                                <div class="flex gap-7 mt-5 mb-2"><div><strong class="text-2xl text-slate-900" x-text="trend.total.toLocaleString('es-CL')"></strong><p class="text-xs text-slate-500">en el período</p></div><div><strong class="text-2xl text-slate-900" x-text="trend.average"></strong><p class="text-xs text-slate-500">promedio diario</p></div></div>
+                                <svg class="kpi-trend" viewBox="0 0 720 220" role="img" :aria-label="'Visitas diarias: ' + trend.total + ' sesiones. Valores exactos disponibles debajo.'">
+                                    <defs><linearGradient id="kpi-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d5a337" stop-opacity="0.3"/><stop offset="100%" stop-color="#d5a337" stop-opacity="0.02"/></linearGradient></defs>
+                                    <path d="M24 36H696 M24 76H696 M24 116H696 M24 156H696 M24 196H696" stroke="#e8ecf1" stroke-dasharray="4 5" fill="none"/>
+                                    <text x="24" y="22" fill="#64748b" font-size="12" x-text="trend.max + ' sesiones'"></text>
+                                    <polygon :points="trend.area" fill="url(#kpi-area)"/>
+                                    <polyline :points="trend.points" fill="none" stroke="#bd8310" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+                                    <circle x-show="trend.single" cx="360" :cy="trend.singleY" r="5" fill="#bd8310"/>
+                                    <text x-show="!trend.hasData" x="360" y="112" text-anchor="middle" fill="#64748b" font-size="14">Sin visitas registradas en este período</text>
+                                </svg>
+                                <div class="flex justify-between text-xs text-slate-500"><span x-text="trend.first"></span><span x-text="trend.last"></span></div>
+                                <details class="text-sm mt-3"><summary class="cursor-pointer text-brand-700">Ver valores diarios</summary><div class="max-h-48 overflow-auto"><template x-for="day in analytics.daily" :key="day.day"><p class="flex justify-between border-b border-slate-100 py-1"><span x-text="day.day"></span><span x-text="day.visits + ' visitas'"></span></p></template></div></details>
+                            </div>
+                            <div class="kpi-panel">
+                                <h3 class="font-bold text-slate-900">Dispositivos</h3><p class="text-xs text-slate-500 mt-1">Desde dónde exploran tu catálogo</p>
+                                <div class="kpi-donut" :style="{background:deviceGradient()}" role="img" aria-label="Distribución de sesiones por dispositivo; valores en la leyenda inferior."><div class="kpi-donut-center"><strong class="text-3xl text-slate-900" x-text="analytics.visits.toLocaleString('es-CL')"></strong><span class="text-xs text-slate-500">sesiones</span></div></div>
+                                <p x-show="!analyticsRows('devices').length" class="text-sm text-slate-500 text-center">Sin datos de dispositivos</p>
+                                <template x-for="row in analyticsRows('devices')" :key="row.key"><div class="flex justify-between gap-2 py-2 text-sm"><span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" :style="{background:deviceColor(row.key)}"></span><span x-text="row.label"></span></span><span><strong x-text="row.percent + '%'"></strong> <span class="text-slate-400" x-text="'· ' + row.count"></span></span></div></template>
+                            </div>
                         </div>
-                        <details class="text-sm mb-6"><summary class="cursor-pointer text-brand-700 py-2">Ver valores diarios</summary><div class="max-h-48 overflow-auto"><template x-for="day in analytics.daily" :key="day.day"><p class="flex justify-between border-b border-slate-100 py-1"><span x-text="day.day"></span><span x-text="day.visits + ' visitas'"></span></p></template></div></details>
-                        <div class="grid md:grid-cols-3 gap-5 mb-6">
-                            <template x-for="group in [{key:'countries',label:'País estimado de la conexión'},{key:'sources',label:'Cómo llegaron'},{key:'devices',label:'Dispositivos'}]" :key="group.key">
-                                <div class="rounded-xl border border-slate-200 p-4"><h3 class="font-bold text-sm mb-3" x-text="group.label"></h3><p x-show="!analyticsRows(group.key).length" class="text-sm text-slate-500">Sin datos en este período.</p><div class="max-h-60 overflow-auto"><template x-for="row in analyticsRows(group.key)" :key="row.key"><div class="py-2 border-b border-slate-100 text-sm"><p class="flex justify-between gap-3"><span x-text="row.label"></span><strong class="whitespace-nowrap" x-text="row.count + ' · ' + row.percent + '%'"></strong></p><div class="mt-2 h-1 bg-slate-100 rounded"><div class="h-1 bg-brand-500 rounded" :style="{width:row.percent + '%'}"></div></div></template></div></div>
+                        <div class="grid md:grid-cols-2 gap-5 mb-6">
+                            <template x-for="group in [{key:'countries',label:'País estimado de la conexión'},{key:'sources',label:'Cómo llegaron'}]" :key="group.key">
+                                <div class="kpi-panel"><h3 class="font-bold text-sm mb-3" x-text="group.label"></h3><p x-show="!analyticsRows(group.key).length" class="text-sm text-slate-500">Sin datos en este período.</p><div class="max-h-60 overflow-auto"><template x-for="row in analyticsRows(group.key)" :key="row.key"><div class="py-3 text-sm"><p class="flex justify-between gap-3"><span x-text="row.label"></span><strong class="whitespace-nowrap" x-text="row.count + ' · ' + row.percent + '%'"></strong></p><div class="mt-2 h-2 bg-slate-100 rounded-full"><div class="h-2 bg-brand-500 rounded-full" :style="{width:row.percent + '%'}"></div></div></template></div></div>
                             </template>
                         </div>
                         <h3 class="font-bold text-sm mb-3">Vehículos más consultados</h3>
@@ -481,7 +515,8 @@
                         <p class="text-xs text-slate-500" x-text="'Primer registro: ' + analyticsDate(analytics.startedAt) + ' · Actualizado: ' + analyticsDate(analytics.updatedAt)"></p>
                     </div>
                 </template>
-                <p class="mt-4 text-xs leading-relaxed text-slate-500">Datos desde la activación, sin historial anterior. Una sesión por pestaña, con vencimiento tras 30 minutos de inactividad; se cuenta nuevamente al cambiar de día. Los clics son acciones, no personas ni ventas. País aproximado; una VPN puede alterarlo. No guardamos IP ni ubicación precisa en estas estadísticas. Se excluyen administradores con sesión iniciada y navegadores que solicitan no ser rastreados. Bloqueadores y fallas de red pueden reducir el conteo. Actualización manual.</p>
+                <details class="mt-4 text-xs leading-relaxed text-slate-500"><summary class="cursor-pointer">Cómo interpretar estas métricas y privacidad</summary><p>Datos desde la activación, sin historial anterior. Una sesión por pestaña, con vencimiento tras 30 minutos de inactividad; se cuenta nuevamente al cambiar de día. Los clics son acciones, no personas ni ventas. País aproximado; una VPN puede alterarlo. No guardamos IP ni ubicación precisa en estas estadísticas. Se excluyen administradores con sesión iniciada y navegadores que solicitan no ser rastreados. Bloqueadores y fallas de red pueden reducir el conteo. Actualización manual.</p></details>
+                </div>
             </section>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <div class="bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 shadow-sm">

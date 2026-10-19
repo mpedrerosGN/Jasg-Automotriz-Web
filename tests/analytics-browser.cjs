@@ -39,6 +39,7 @@ const fixture = { visits: 2, pageViews: 3, vehicleClicks: 1, whatsappClicks: 1, 
             assert.equal(await section.getByText('Visitas (sesiones)').count(), 1);
             await section.locator('#analytics-period').selectOption('7');
             await section.getByText('Chile', { exact: true }).waitFor();
+            await section.getByText('Diagnóstico de país · Comprobar mi conexión',{exact:true}).click();
             await section.getByRole('button', {name:'Comprobar mi país detectado'}).click();
             await section.getByText('País detectado ahora: Chile', {exact:true}).waitFor();
             assert.equal(await section.getByText('Tasa de clic de contacto', {exact:true}).count(),1);

@@ -4,6 +4,29 @@
     window.jasgAnalyticsDashboard = () => ({
         analytics: null, analyticsDays: '30', analyticsLoading: false, analyticsError: '',
         diagnostic: null, diagnosticLoading: false, diagnosticError: '', vehicleSort: 'views',
+        trend: {hasData:false,points:'',area:'',max:0,total:0,average:'0,0',first:'',last:''},
+        trendChart() {
+            const days = this.analytics?.daily || [];
+            const total = days.reduce((sum, day) => sum + day.visits, 0);
+            const max = Math.max(1, ...days.map(day => day.visits));
+            const coordinates = days.map((day, index) => [days.length === 1 ? 360 : 24 + index * 672 / (days.length - 1), 196 - day.visits / max * 160]);
+            const points = coordinates.map(([x,y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
+            return {hasData:total > 0,points,area:coordinates.length ? `${coordinates[0][0]},196 ${points} ${coordinates.at(-1)[0]},196` : '',
+                max,total,average:(days.length ? total / days.length : 0).toLocaleString('es-CL',{minimumFractionDigits:1,maximumFractionDigits:1}),
+                first:days[0]?.day || '',last:days.at(-1)?.day || '',single:coordinates.length === 1, singleY:coordinates[0]?.[1] || 196};
+        },
+        deviceGradient() {
+            const rows = this.analyticsRows('devices');
+            const total = rows.reduce((sum,row)=>sum+row.count,0);
+            if (!total) return '#e9edf2';
+            let offset = 0;
+            const segments = rows.map(row => {
+                const start = offset; offset += row.count / total * 100;
+                return `${this.deviceColor(row.key)} ${start}% ${offset}%`;
+            });
+            return `conic-gradient(${segments.join(',')})`;
+        },
+        deviceColor(key) { return {mobile:'#c58a12',desktop:'#172033',tablet:'#8795a9'}[key] || '#b8c2cf'; },
         async diagnoseCountry() {
             if (this.diagnosticLoading) return;
             this.diagnosticLoading = true; this.diagnosticError = ''; this.diagnostic = null;
@@ -34,6 +57,7 @@
                 const response = await fetch(`/api/analytics/stats?days=${this.analyticsDays}`, { headers: { Authorization: `Bearer ${session.access_token}` }, cache: 'no-store', signal: AbortSignal.timeout(45000) });
                 if (!response.ok) throw new Error(response.status === 401 ? 'Tu sesión venció. Vuelve a iniciar sesión.' : 'No se pudieron cargar las estadísticas. Intenta actualizar en unos momentos.');
                 this.analytics = await response.json();
+                this.trend = this.trendChart();
             } catch (error) { this.analyticsError = error.message || 'No se pudieron cargar las estadísticas.'; }
             finally { this.analyticsLoading = false; }
         },
