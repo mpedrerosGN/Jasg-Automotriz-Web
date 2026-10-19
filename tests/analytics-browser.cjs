@@ -24,13 +24,15 @@ const fixture = { visits: 2, pageViews: 3, vehicleClicks: 1, whatsappClicks: 1, 
             page.on('pageerror', error => errors.push(error.message));
             await page.route('**/supabase-client.js*', route => route.fulfill({ contentType: 'text/javascript', body: 'window.jasgSupabase = {auth:{getSession:async()=>({data:{session:{access_token:"local-test"}}})}};' }));
             await page.route('**/supabase-data.js*', route => route.fulfill({ contentType: 'text/javascript', body: 'window.jasgDb = {listVehicles:async()=>[],listBrands:async()=>[],listEquipment:async()=>[]};' }));
-            let fail = false;
+            let fail = false, statsRequests = 0;
             await page.route('**/api/analytics/stats*', route => {
                 assert.equal(route.request().headers().authorization, 'Bearer local-test');
                 if (route.request().url().includes('diagnostic=1')) return route.fulfill({contentType:'application/json',body:JSON.stringify({country:'CL',counted:false})});
+                statsRequests++;
                 return route.fulfill({ status: fail ? 503 : 200, contentType: 'application/json', body: JSON.stringify(fixture) });
             });
             await page.goto(`http://127.0.0.1:${server.address().port}/admin.html`, { waitUntil: 'networkidle' });
+            assert.equal(statsRequests,0,'Catalogue must not fetch dashboard statistics');
             await page.evaluate(() => { Alpine.$data(document.body).currentView = 'dashboard'; });
             const section = page.locator('[aria-labelledby="analytics-heading"]');
             await section.getByText('Chile', { exact: true }).waitFor();

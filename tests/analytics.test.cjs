@@ -138,6 +138,20 @@ test('counts link destinations and reports storage capacity/conflict honestly', 
 });
 
 const vm = require('node:vm');
+test('KPI charts use real series and handle empty and single-day data without invalid geometry', () => {
+    const sandbox = {window:{}, Intl, Date};
+    vm.createContext(sandbox);
+    vm.runInContext(fs.readFileSync(path.join(__dirname,'../analytics-dashboard.js'),'utf8'),sandbox);
+    const dashboard = sandbox.window.jasgAnalyticsDashboard();
+    assert.equal(dashboard.trendChart().hasData,false);
+    dashboard.analytics = {daily:[{day:'2026-10-19',visits:5}],devices:{mobile:3,desktop:2}};
+    assert.equal(dashboard.trendChart().max,5);
+    assert.doesNotMatch(dashboard.trendChart().points,/NaN|Infinity/);
+    assert.match(dashboard.deviceGradient(),/conic-gradient/);
+    dashboard.analytics.daily = [{day:'2026-10-18',visits:0},{day:'2026-10-19',visits:10}];
+    assert.equal(dashboard.trendChart().total,10);
+    assert.equal(dashboard.trendChart().average,'5,0');
+});
 test('comparison keeps periods separate and diagnostic never reads or writes storage', async () => {
     const store = storeMock();
     await core.recordEvent(store, core.normalizeEvent(body, context, now));
