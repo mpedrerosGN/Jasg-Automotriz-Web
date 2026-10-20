@@ -12,13 +12,13 @@ test('Autofact browser assets remain relative for GitHub Pages subpaths',()=>{
   assert.doesNotMatch(source,/(?:src|href)=["']\//,`${fileName} must not reference browser assets from the domain root`);
  }
 });
-test('Autofact detail opens saved links inside the site modal',()=>{
+test('Autofact detail exposes only the uploaded PDF viewer',()=>{
  for(const fileName of ['index.html','admin.html']){
   const source=fs.readFileSync(require('node:path').join(__dirname,'..',fileName),'utf8');
-  assert.match(source,/window\.jasgAutofact\.openUrl\(url\)/,`${fileName} must open Autofact in the in-page viewer`);
-  assert.doesNotMatch(source,/x-show="url"[^>]*target="_blank"/,`${fileName} must not force a new tab`);
+  assert.doesNotMatch(source,/x-show="url"|window\.jasgAutofact\.openUrl\(/,`${fileName} must not expose external Autofact links`);
+  assert.match(source,/window\.jasgAutofact\.review\(selectedVehicle\.id\)/);
  }
- assert.match(fs.readFileSync(require('node:path').join(__dirname,'..','autofact.js'),'utf8'),/openUrl\(url\)/);
+ assert.doesNotMatch(fs.readFileSync(require('node:path').join(__dirname,'..','autofact.js'),'utf8'),/window\.jasgAutofact\.openUrl\(/);
 });
 test('external reports accept only official HTTPS report links',async()=>{
  const api=await core;
