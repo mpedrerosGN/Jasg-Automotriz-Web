@@ -1,9 +1,5 @@
 const fs = require('node:fs');
 const path = require('node:path');
-// Defense in depth: build hooks can bypass Netlify's ignore command.
-if (process.env.NETLIFY && (process.env.BRANCH || '').startsWith('pruebas/')) {
-    throw new Error('Esta rama es solo para pruebas en GitHub; despliegue Netlify bloqueado.');
-}
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'dist');
 fs.mkdirSync(output, { recursive: true });
