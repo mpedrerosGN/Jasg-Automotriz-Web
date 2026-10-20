@@ -38,6 +38,18 @@ test('badge index lists metadata without downloading PDFs',async()=>{
  client.storage.from=()=>({list:async()=>({error:{}})});
  await assert.rejects(()=>api.listReports(client));
 });
+test('badge index paginates and ignores folders and unknown names',async()=>{
+ const api=await core,offsets=[];
+ const client={storage:{from:()=>({list:async(_,options)=>{
+  offsets.push(options.offset);
+  return {data:options.offset===0?Array.from({length:1000},()=>({name:'unrelated'})):[{name:id+'.pdf'}]};
+ }})}};
+ assert.deepEqual(await api.listReports(client),{[id]:true});
+ assert.deepEqual(offsets,[0,1000]);
+ const original=global.fetch;
+ try{global.fetch=async()=>Response.json({version:2,url:link});await assert.rejects(()=>api.getLink(id));}
+ finally{global.fetch=original;}
+});
 test('report paths are restricted to vehicle UUIDs',async()=>{
  const api=await core;
  assert.equal(api.reportPath(id),`autofact/${id}.pdf`);

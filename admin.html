@@ -297,7 +297,7 @@
                             </template>
                             
                             <!-- Status Badge -->
-                            <div class="absolute top-3 left-3">
+                            <div class="vehicle-card-status">
                                 <span :class="{
                                     'bg-emerald-600 text-white': vehicle.status === 'Disponible',
                                     'bg-amber-500 text-white': vehicle.status === 'Reservado',
@@ -309,15 +309,16 @@
 
                             <!-- YouTube Video Badge -->
                             <template x-if="vehicle.youtubeUrl">
-                                <div class="absolute top-3 right-3 bg-red-600 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md">
+                                <div class="vehicle-card-video bg-red-600 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md">
                                     <i class="fa-brands fa-youtube text-sm"></i> Video
                                 </div>
                             </template>
 
                             <!-- Price Tag -->
-                            <div class="absolute bottom-3 right-3 bg-slate-900/90 backdrop-blur-md text-white px-4 py-1.5 rounded-xl font-black text-lg shadow-lg border border-white/10">
+                            <div class="vehicle-card-price bg-slate-900/90 backdrop-blur-md text-white rounded-xl font-black shadow-lg border border-white/10">
                                 <span class="text-brand-300" x-text="formatCurrency(vehicle.price)"></span>
                             </div>
+                            <div x-data="jasgAutofactBadge()" x-init="check(vehicle.id)" @autofact-updated.window="check(vehicle.id)" x-show="available" x-cloak class="vehicle-card-autofact"><i class="fa-solid fa-file-circle-check" aria-hidden="true"></i> Autofact</div>
                         </div>
 
                         <!-- Card Details Body -->
@@ -1070,7 +1071,9 @@
 
                         <!-- WhatsApp Action Footer -->
                         <div class="mb-4" x-data="jasgAutofactButton()" x-init="check(selectedVehicle.id); $watch('selectedVehicle.id', id => check(id))" @autofact-updated.window="check(selectedVehicle.id, true)">
-                            <button type="button" x-show="available" @click.stop="window.jasgAutofact.review(selectedVehicle.id)" class="min-h-11 w-full sm:w-auto px-5 py-3 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 font-bold"><i class="fa-solid fa-file-pdf mr-2" aria-hidden="true"></i>Revisar Autofact</button>
+                            <a x-show="url" :href="url || null" target="_blank" rel="noopener noreferrer" class="inline-block min-h-11 w-full sm:w-auto px-5 py-3 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 font-bold">Revisar Autofact ↗</a>
+                            <button type="button" x-show="available" @click.stop="window.jasgAutofact.review(selectedVehicle.id)" class="min-h-11 w-full sm:w-auto px-5 py-3 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 font-bold"><i class="fa-solid fa-file-pdf mr-2" aria-hidden="true"></i><span x-text="url ? 'Ver PDF guardado' : 'Revisar Autofact'"></span></button>
+                            <p x-show="url" class="mt-2 text-xs text-slate-500">El enlace abre una pestaña nueva con la información disponible en Autofact. Esta página permanecerá abierta.</p>
                             <span x-show="checking" class="text-xs text-slate-500">Comprobando Autofact…</span>
                             <button type="button" x-show="error" @click="check(selectedVehicle.id,true)" class="text-xs text-slate-500 underline">Reintentar consulta Autofact</button>
                         </div>

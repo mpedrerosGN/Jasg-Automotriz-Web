@@ -1,6 +1,16 @@
 (() => {
     let storePromise;
     const store = () => storePromise ||= import('/autofact-store.mjs');
+    let indexPromise;
+    const reportIndex = () => indexPromise ||= store().then(api=>api.listReports(window.jasgSupabase));
+    window.addEventListener('autofact-updated',()=>{indexPromise=null;});
+    window.jasgAutofactBadge=()=>({
+        available:false,
+        async check(id) {
+            try {this.available=!!(await reportIndex())[String(id).toLowerCase()];}
+            catch {this.available=false;indexPromise=null;}
+        }
+    });
     function dialog(title) {
         const element = document.createElement('dialog');
         element.className = 'autofact-dialog';
@@ -27,6 +37,29 @@
             // Static markup only; vehicle and file names are assigned via textContent.
             content.innerHTML='<p>Sube o reemplaza el informe de esta publicación. PDF sin contraseña, hasta 10 MB y 500 páginas.</p><p><strong>El documento será público.</strong> Oculta RUT, domicilios y otros datos personales que no deban publicarse. Sube solo documentos que tengas autorización para compartir.</p><label>Seleccionar informe PDF<input type="file" accept="application/pdf,.pdf"></label><label><input type="checkbox"> Confirmo que revisé el PDF y autorizo su publicación.</label><div class="autofact-actions"><button type="button" data-save>Guardar PDF</button><button type="button" data-review hidden>Revisar Autofact actual</button></div><p role="status" aria-live="polite"></p>';
             modal.append(content);
+            const links=document.createElement('section');
+            links.className='autofact-link-editor';
+            links.innerHTML='<h3>Enlace Autofact (sin subir PDF)</h3><p>El informe se abre en una pestaña nueva porque Autofact no permite insertarlo en otras páginas. Se muestra la información disponible en ese enlace, no el informe completo de pago.</p><label>Enlace del informe<input type="url" maxlength="256" placeholder="https://www.autofactpro.com/informe/ver/…" autocomplete="off"></label><p>Guarda únicamente un enlace del vehículo que estás editando y que tengas autorización para compartir públicamente.</p><button type="button" data-save-link>Guardar enlace</button><a hidden target="_blank" rel="noopener noreferrer" data-open-link>Revisar enlace actual ↗</a><p role="status" aria-live="polite"></p><hr>';
+            content.before(links);
+            const linkInput=links.querySelector('input'),linkSave=links.querySelector('button'),linkOpen=links.querySelector('a'),linkStatus=links.querySelector('[role=status]');
+            linkInput.disabled=true;linkSave.disabled=true;
+            linkSave.onclick=async()=>{
+                if(busy)return;
+                busy=true;linkSave.disabled=true;save.disabled=true;
+                modal.querySelector('.autofact-head button').disabled=true;
+                try {
+                    const api=await store();
+                    await api.saveLink(window.jasgSupabase,vehicle.id,linkInput.value);
+                    linkOpen.href=api.validateLink(linkInput.value);linkOpen.hidden=false;
+                    linkStatus.textContent='Enlace guardado. El PDF existente se conserva como alternativa.';
+                    window.dispatchEvent(new Event('autofact-updated'));
+                } catch(error) {linkStatus.textContent=error.message || 'No se pudo guardar el enlace.';}
+                finally {busy=false;linkSave.disabled=false;save.disabled=false;modal.querySelector('.autofact-head button').disabled=false;}
+            };
+            store().then(api=>api.getLink(vehicle.id)).then(url=>{
+                linkInput.value=url;if(url){linkOpen.href=url;linkOpen.hidden=false;}
+            }).catch(()=>{linkStatus.textContent='No se pudo consultar el enlace actual. Cierra y vuelve a abrir para reintentar.';})
+                .finally(()=>{linkInput.disabled=false;linkSave.disabled=false;});
             const input=content.querySelector('input[type=file]'),consent=content.querySelector('input[type=checkbox]'),save=content.querySelector('[data-save]'),review=content.querySelector('[data-review]'),status=content.querySelector('[role=status]');
             review.onclick=()=>window.jasgAutofact.review(vehicle.id);
             let busy=false;
@@ -55,11 +88,19 @@
         }
     };
     window.jasgAutofactButton=()=>({
-        available:false,checking:false,error:'',checkedId:null,sequence:0,
+        available:false,url:'',checking:false,error:'',checkedId:null,sequence:0,
         async check(id,force=false){
             if(!id || (!force && id===this.checkedId))return;
-            this.checkedId=id;this.available=false;this.checking=true;this.error='';const sequence=++this.sequence;
-            try{const available=await (await store()).exists(id);if(sequence===this.sequence)this.available=available;}
+            this.checkedId=id;this.available=false;this.url='';this.checking=true;this.error='';const sequence=++this.sequence;
+            try{
+                const api=await store();
+                const [pdf,link]=await Promise.allSettled([api.exists(id),api.getLink(id)]);
+                if(sequence===this.sequence){
+                    this.available=pdf.status==='fulfilled' && pdf.value;
+                    this.url=link.status==='fulfilled' ? link.value : '';
+                    if(pdf.status==='rejected' || link.status==='rejected')this.error='No se pudo comprobar parte del informe.';
+                }
+            }
             catch{if(sequence===this.sequence)this.error='No se pudo comprobar Autofact.';}
             finally{if(sequence===this.sequence)this.checking=false;}
         }
