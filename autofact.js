@@ -32,6 +32,25 @@
                 iframe.src=assetUrl('autofact-viewer.html')+'?vehicle='+encodeURIComponent(id);
             iframe.className='autofact-frame';modal.append(iframe);
         },
+        openUrl(url) {
+            const safeUrl = String(url || '').trim();
+            if (!safeUrl) return;
+            const modal = dialog('Revisar Autofact');
+            const iframe = document.createElement('iframe');
+            iframe.title = 'Informe Autofact';
+            iframe.className = 'autofact-frame';
+            iframe.src = safeUrl;
+            const fallback = document.createElement('p');
+            fallback.className = 'autofact-link-fallback';
+            fallback.textContent = 'Si Autofact bloquea la visualización dentro del sitio, puedes abrir el informe directamente: ';
+            const link = document.createElement('a');
+            link.href = safeUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = 'Abrir informe';
+            fallback.append(link);
+            modal.append(iframe, fallback);
+        },
         async manage(vehicle) {
             const modal=dialog(`Autofact · ${vehicle.brand} ${vehicle.model}`);
             const content=document.createElement('div');content.className='autofact-manage';

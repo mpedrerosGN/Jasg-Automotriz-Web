@@ -1071,7 +1071,7 @@
 
                         <!-- WhatsApp Action Footer -->
                         <div class="mb-4" x-data="jasgAutofactButton()" x-init="check(selectedVehicle.id); $watch('selectedVehicle.id', id => check(id))" @autofact-updated.window="check(selectedVehicle.id, true)">
-                            <a x-show="url" :href="url || null" target="_blank" rel="noopener noreferrer" class="inline-block min-h-11 w-full sm:w-auto px-5 py-3 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 font-bold">Revisar Autofact ↗</a>
+                            <button type="button" x-show="url" @click.stop="window.jasgAutofact.openUrl(url)" class="min-h-11 w-full sm:w-auto px-5 py-3 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 font-bold">Revisar Autofact</button>
                             <button type="button" x-show="available" @click.stop="window.jasgAutofact.review(selectedVehicle.id)" class="min-h-11 w-full sm:w-auto px-5 py-3 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 font-bold"><i class="fa-solid fa-file-pdf mr-2" aria-hidden="true"></i><span x-text="url ? 'Ver PDF guardado' : 'Revisar Autofact'"></span></button>
                             <p x-show="url" class="mt-2 text-xs text-slate-500">El enlace abre una pestaña nueva con la información disponible en Autofact. Esta página permanecerá abierta.</p>
                             <span x-show="checking" class="text-xs text-slate-500">Comprobando Autofact…</span>
