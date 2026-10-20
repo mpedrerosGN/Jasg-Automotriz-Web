@@ -45,6 +45,8 @@
     <script src="supabase-data.js?v=3"></script>
     <script src="vehicle-gallery.js?v=4"></script>
     <script src="site-branding.js?v=1"></script>
+    <script src="autofact.js?v=1"></script>
+    <link rel="stylesheet" href="autofact.css?v=1">
     <script src="analytics-dashboard.js?v=3"></script>
     <script src="auth.js?v=2"></script>
 
@@ -659,6 +661,7 @@
 
                                     <!-- Actions -->
                                     <td class="py-4 px-6 text-right space-x-1 whitespace-nowrap">
+                                        <button type="button" @click="window.jasgAutofact.manage(v)" title="Administrar informe Autofact" class="p-2 text-brand-700 hover:bg-brand-50 rounded-lg"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Autofact</button>
                                         <button @click="openDetailModal(v)" title="Ver Detalle" class="p-2 text-slate-500 hover:text-brand-600 rounded-lg hover:bg-slate-100">
                                             <i class="fa-solid fa-eye"></i>
                                         </button>
@@ -1066,6 +1069,11 @@
                         </div>
 
                         <!-- WhatsApp Action Footer -->
+                        <div class="mb-4" x-data="jasgAutofactButton()" x-init="check(selectedVehicle.id); $watch('selectedVehicle.id', id => check(id))" @autofact-updated.window="check(selectedVehicle.id, true)">
+                            <button type="button" x-show="available" @click.stop="window.jasgAutofact.review(selectedVehicle.id)" class="min-h-11 w-full sm:w-auto px-5 py-3 rounded-xl border border-brand-200 bg-brand-50 text-brand-700 font-bold"><i class="fa-solid fa-file-pdf mr-2" aria-hidden="true"></i>Revisar Autofact</button>
+                            <span x-show="checking" class="text-xs text-slate-500">Comprobando Autofact…</span>
+                            <button type="button" x-show="error" @click="check(selectedVehicle.id,true)" class="text-xs text-slate-500 underline">Reintentar consulta Autofact</button>
+                        </div>
                         <div class="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div class="text-xs text-slate-500 font-medium">
                                 ¿Interesado en este modelo? Contacta directamente a nuestro vendedor asignado.
