@@ -102,7 +102,7 @@
                     await api.uploadReport(window.jasgSupabase,vehicle.id,input.files[0]);
                     status.textContent='PDF publicado correctamente. Ya está disponible en el detalle del vehículo.';review.hidden=false;input.value='';consent.checked=false;
                     window.dispatchEvent(new Event('autofact-updated'));
-                } catch(error) {status.textContent=error?.message?.includes('PDF') || error?.message?.includes('sesión') ? error.message : 'No se pudo publicar. Usa un PDF válido, sin contraseña, y vuelve a intentarlo.';}
+                } catch(error) {status.textContent=error?.message || 'No se pudo publicar el PDF. Revisa la sesión y los permisos de almacenamiento.';}
                 finally {await task?.destroy();busy=false;save.disabled=false;input.disabled=false;modal.querySelector('.autofact-head button').disabled=false;}
             };
             try {review.hidden=!(await (await store()).exists(vehicle.id));}catch{status.textContent='No se pudo comprobar el informe actual. Puedes reintentar abriendo este panel.';}
