@@ -5,6 +5,13 @@ const file = '../autofact-store.mjs';
 const core = fs.existsSync(require('node:path').join(__dirname,file)) ? import(file) : Promise.resolve({});
 const id = '11111111-1111-4111-8111-111111111111';
 const link = 'https://www.autofactpro.com/informe/ver/c08ae82b2ace';
+test('Autofact browser assets remain relative for GitHub Pages subpaths',()=>{
+ for(const fileName of ['autofact.js','autofact-viewer.mjs','autofact-viewer.html']){
+  const source=fs.readFileSync(require('node:path').join(__dirname,'..',fileName),'utf8');
+  assert.doesNotMatch(source,/import\(['"]\//,`${fileName} must not dynamically import from the domain root`);
+  assert.doesNotMatch(source,/(?:src|href)=["']\//,`${fileName} must not reference browser assets from the domain root`);
+ }
+});
 test('external reports accept only official HTTPS report links',async()=>{
  const api=await core;
  assert.equal(api.validateLink(' '+link+' '),link);

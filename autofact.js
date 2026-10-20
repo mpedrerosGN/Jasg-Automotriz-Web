@@ -1,6 +1,7 @@
 (() => {
+    const assetUrl = path => new URL(path.replace(/^\/+/, ''), document.baseURI).href;
     let storePromise;
-    const store = () => storePromise ||= import('/autofact-store.mjs');
+    const store = () => storePromise ||= import(assetUrl('autofact-store.mjs'));
     let indexPromise;
     const reportIndex = () => indexPromise ||= store().then(api=>api.listReports(window.jasgSupabase));
     window.addEventListener('autofact-updated',()=>{indexPromise=null;});
@@ -28,7 +29,7 @@
         review(id) {
             const modal = dialog('Revisar Autofact');
             const iframe=document.createElement('iframe');iframe.title='Visor del informe Autofact';
-            iframe.src='/autofact-viewer.html?vehicle='+encodeURIComponent(id);
+                iframe.src=assetUrl('autofact-viewer.html')+'?vehicle='+encodeURIComponent(id);
             iframe.className='autofact-frame';modal.append(iframe);
         },
         async manage(vehicle) {
@@ -72,7 +73,7 @@
                 try {
                     const api=await store();await api.validateFile(input.files[0]);
                     status.textContent='Validando PDF…';
-                    const pdf=await import('/vendor/pdfjs/pdf.mjs');pdf.GlobalWorkerOptions.workerSrc='/vendor/pdfjs/pdf.worker.mjs';
+                        const pdf=await import(assetUrl('vendor/pdfjs/pdf.mjs'));pdf.GlobalWorkerOptions.workerSrc=assetUrl('vendor/pdfjs/pdf.worker.mjs');
                     task=pdf.getDocument({data:new Uint8Array(await input.files[0].arrayBuffer()),isEvalSupported:false});
                     task.onPassword=()=>{task.destroy();};
                     const document=await task.promise;

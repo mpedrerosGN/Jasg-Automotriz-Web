@@ -1,4 +1,5 @@
 import {reportUrl} from './autofact-store.mjs';
+const assetUrl=path=>new URL(path.replace(/^\/+/,''),document.baseURI).href;
 const $=id=>document.getElementById(id);
 let pdf, pageNumber=1,zoom=1,busy=false;
 async function render(){
@@ -22,8 +23,8 @@ $('minus').onclick=()=>{zoom=Math.max(.75,zoom-.25);void render();};$('plus').on
 let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>void render(),200);});
 try{
     const url=reportUrl(new URL(location.href).searchParams.get('vehicle'));
-    const library=await import('/vendor/pdfjs/pdf.mjs');library.GlobalWorkerOptions.workerSrc='/vendor/pdfjs/pdf.worker.mjs';
-    const task=library.getDocument({url:url+'?v='+Date.now(),isEvalSupported:false,cMapUrl:'/vendor/pdfjs/cmaps/',cMapPacked:true,standardFontDataUrl:'/vendor/pdfjs/standard_fonts/',wasmUrl:'/vendor/pdfjs/wasm/'});
+    const library=await import(assetUrl('vendor/pdfjs/pdf.mjs'));library.GlobalWorkerOptions.workerSrc=assetUrl('vendor/pdfjs/pdf.worker.mjs');
+    const task=library.getDocument({url:url+'?v='+Date.now(),isEvalSupported:false,cMapUrl:assetUrl('vendor/pdfjs/cmaps/'),cMapPacked:true,standardFontDataUrl:assetUrl('vendor/pdfjs/standard_fonts/'),wasmUrl:assetUrl('vendor/pdfjs/wasm/')});
     task.onPassword=()=>{ $('status').textContent='Este PDF tiene contraseña. Solicita un informe sin protección.';void task.destroy(); };
     pdf=await task.promise;await render();
     window.addEventListener('pagehide',()=>{void task.destroy();},{once:true});
